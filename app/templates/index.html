@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Touchgrass — Find Your City</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4603a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='10' r='3'/><path d='M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.65 12a.5.5 0 0 0 .7 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:      #faf7f2;
+      --terracotta: #c4603a;
+      --forest:     #3a6b4a;
+      --ink:        #1e1a16;
+      --sand:       #e8d9c4;
+      --sand-light: #f2ece2;
+      --muted:      #8a7f74;
+      --radius:     6px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ──────────────────────────────── */
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      grid-template-rows: 56px 1fr;
+      height: 100vh;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ──────────────────────────────── */
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--sand);
+      background: var(--cream);
+    }
+
+    .wordmark {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .header-tag {
+      margin-left: 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border: 1px solid var(--sand);
+      border-radius: 20px;
+    }
+
+    /* ── Chat panel ──────────────────────────── */
+
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--sand);
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
+
+    /* ── Message bubbles ─────────────────────── */
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+      animation: fadeUp 0.25s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.assistant { align-self: flex-start; }
+    .msg.user      { align-self: flex-end; }
+
+    .msg-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .msg.user .msg-label { text-align: right; }
+
+    .msg-bubble {
+      padding: 13px 17px;
+      border-radius: var(--radius);
+      font-size: 14.5px;
+      line-height: 1.65;
+    }
+
+    .msg.assistant .msg-bubble {
+      background: white;
+      border: 1px solid var(--sand);
+      color: var(--ink);
+      border-bottom-left-radius: 2px;
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--ink);
+      color: var(--cream);
+      border-bottom-right-radius: 2px;
+    }
+
+    /* ── Typing indicator ────────────────────── */
+
+    .typing {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 18px;
+      background: white;
+      border: 1px solid var(--sand);
+      border-radius: var(--radius);
+      border-bottom-left-radius: 2px;
+      width: fit-content;
+    }
+
+    .typing span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: bounce 1.2s ease infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.30s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30%            { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* ── Input area ──────────────────────────── */
+
+    .input-area {
+      padding: 16px 20px;
+      border-top: 1px solid var(--sand);
+      background: var(--cream);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    textarea {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--sand);
+      border-radius: var(--radius);
+      background: white;
+      padding: 11px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      outline: none;
+      min-height: 44px;
+      max-height: 140px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus { border-color: var(--terracotta); }
+    textarea::placeholder { color: var(--muted); }
+
+    .send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--terracotta);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .send-btn:hover:not(:disabled)  { background: #b0552f; }
+    .send-btn:active:not(:disabled) { transform: scale(0.95); }
+    .send-btn:disabled              { background: var(--sand); cursor: not-allowed; }
+
+    .send-btn svg { width: 18px; height: 18px; }
+
+    /* ── Results panel ───────────────────────── */
+
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--sand-light);
+    }
+
+    .results-header {
+      padding: 20px 20px 14px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .results-header h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--ink);
+    }
+
+    .results-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .results-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .results-list::-webkit-scrollbar { width: 4px; }
+    .results-list::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
+
+    /* ── City card ───────────────────────────── */
+
+    .city-card {
+      background: white;
+      border: 1px solid var(--sand);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      animation: fadeUp 0.3s ease both;
+      cursor: default;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .city-card:hover {
+      border-color: var(--terracotta);
+      box-shadow: 0 2px 12px rgba(196, 96, 58, 0.08);
+    }
+
+    .city-card-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .city-rank {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--terracotta);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .city-name {
+      font-family: 'Fraunces', serif;
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .city-score {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .score-bar-track {
+      height: 4px;
+      background: var(--sand);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      background: var(--terracotta);
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sub-scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+    }
+
+    .sub-score-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .sub-score-label { color: var(--muted); }
+
+    .sub-score-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--ink);
+    }
+
+    /* ── Empty state ─────────────────────────── */
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px 24px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 200px;
+    }
+
+    /* ── Error toast ─────────────────────────── */
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--cream);
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <header>
+    <a class="wordmark" href="/">Touchgrass</a>
+    <span class="header-tag">City Match</span>
+  </header>
+
+  <!-- Chat -->
+  <div class="chat-panel">
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <div class="input-row">
+        <textarea
+          id="input"
+          placeholder="Tell me what's going on..."
+          rows="1"
+          disabled
+        ></textarea>
+        <button class="send-btn" id="send-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-panel">
+    <div class="results-header">
+      <h2>Your Cities</h2>
+      <p>Results will appear as we talk</p>
+    </div>
+    <div id="results-list" class="results-list">
+      <div class="empty-state">
+        <div class="icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted); opacity: 0.5;">
+            <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.65 12a.5.5 0 0 0 .7 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+          </svg>
+        </div>
+        <p>Answer a few questions and we'll find your best matches</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const messagesEl  = document.getElementById('messages');
+  const inputEl     = document.getElementById('input');
+  const sendBtn     = document.getElementById('send-btn');
+  const resultsEl   = document.getElementById('results-list');
+  const toastEl     = document.getElementById('toast');
+
+  let conversationId = null;
+  let isWaiting      = false;
+
+  // ── Toast ───────────────────────────────────
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 3000);
+  }
+
+  // ── Scroll to bottom ────────────────────────
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  // ── Add message to chat ─────────────────────
+  function addMessage(role, text) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `msg ${role}`;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'assistant' ? 'Touchgrass' : 'You';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(bubble);
+    messagesEl.appendChild(wrapper);
+    scrollToBottom();
+    return wrapper;
+  }
+
+  // ── Typing indicator ────────────────────────
+  function showTyping() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'msg assistant';
+    wrapper.id = 'typing-indicator';
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = 'Touchgrass';
+
+    const indicator = document.createElement('div');
+    indicator.className = 'typing';
+    indicator.innerHTML = '<span></span><span></span><span></span>';
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(indicator);
+    messagesEl.appendChild(wrapper);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+  }
+
+  // ── Render results panel ────────────────────
+  function renderCities(cities) {
+    if (!cities || cities.length === 0) return;
+
+    resultsEl.innerHTML = '';
+
+    cities.forEach(city => {
+      const card = document.createElement('div');
+      card.className = 'city-card';
+
+      const score = city.personalized_score ?? 0;
+
+      card.innerHTML = `
+        <div class="city-card-top">
+          <span class="city-rank">#${city.rank}</span>
+          <span class="city-name">${city.name}</span>
+          <span class="city-score">${score.toFixed(1)}</span>
+        </div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width: ${score}%"></div>
+        </div>
+        ${city.sub_scores ? `
+        <div class="sub-scores">
+          ${Object.entries({
+            'Econ':      city.sub_scores.econ,
+            'Lifestyle': city.sub_scores.lifestyle,
+            'Community': city.sub_scores.community,
+            'Mobility':  city.sub_scores.mobility,
+            'Health':    city.sub_scores.health,
+          }).filter(([,v]) => v != null).map(([label, val]) => `
+            <div class="sub-score-item">
+              <span class="sub-score-label">${label}</span>
+              <span class="sub-score-val">${Number(val).toFixed(0)}</span>
+            </div>
+          `).join('')}
+        </div>` : ''}
+      `;
+
+      resultsEl.appendChild(card);
+    });
+  }
+
+  // ── Set UI state ────────────────────────────
+  function setWaiting(waiting) {
+    isWaiting = waiting;
+    inputEl.disabled = waiting;
+    sendBtn.disabled = waiting;
+    if (!waiting) inputEl.focus();
+  }
+
+  // ── Send message ────────────────────────────
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || isWaiting || !conversationId) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    addMessage('user', text);
+    setWaiting(true);
+    showTyping();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId, message: text }),
+      });
+
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+
+      hideTyping();
+      addMessage('assistant', data.message);
+
+      if (data.cities) {
+        renderCities(data.cities);
+      }
+
+      if (data.at_limit) {
+        inputEl.disabled = true;
+        sendBtn.disabled = true;
+        inputEl.placeholder = 'Conversation complete';
+      }
+
+    } catch (err) {
+      hideTyping();
+      showToast('Something went wrong — please try again');
+      console.error(err);
+    } finally {
+      setWaiting(false);
+    }
+  }
+
+  // ── Textarea auto-resize ────────────────────
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+  });
+
+  // ── Send on Enter (Shift+Enter = newline) ───
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  // ── Start conversation on load ──────────────
+  async function init() {
+    showTyping();
+    try {
+      const res = await fetch('/api/start', { method: 'POST' });
+      if (!res.ok) throw new Error(`Start failed: ${res.status}`);
+      const data = await res.json();
+
+      conversationId = data.conversation_id;
+      hideTyping();
+      addMessage('assistant', data.message);
+      setWaiting(false);
+
+    } catch (err) {
+      hideTyping();
+      addMessage('assistant', 'Something went wrong starting the conversation. Please refresh.');
+      console.error(err);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
