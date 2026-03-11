@@ -1,0 +1,378 @@
+══════════════════════════════════════════════════════════════════════
+  TOUCHGRASS PROJECT 03 — SCORING ENGINE DIAGNOSTIC
+  30 Persona Weight Vectors | Variety & Coverage Test
+══════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────
+  #01 Broke renter fleeing NYC
+  Paying 55% of income on rent, wants out, doesn't care about much else as long as it's cheap
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Minneapolis, MN, MN-WI               100.0
+  2      Portland, OR, OR-WA                   91.4
+  3      Hartford, CT, CT                      90.5
+  4      Grand Rapids, MI, MI                  88.1
+  5      Cincinnati, OH, OH-KY-IN              87.4
+
+──────────────────────────────────────────────────────────────────────
+  #02 Remote worker maximizing savings
+  Earns $120k remotely, wants low COL, doesn't care about job market or commute
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Minneapolis, MN, MN-WI                97.8
+  3      Hartford, CT, CT                      90.5
+  4      Anchorage, AK, AK                     88.9
+  5      Grand Rapids, MI, MI                  85.0
+
+──────────────────────────────────────────────────────────────────────
+  #03 First-time homebuyer
+  Wants to buy within 3 years, home values and ownership rate are primary concern
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Minneapolis, MN, MN-WI               100.0
+  2      Portland, OR, OR-WA                   93.6
+  3      Washington, DC, DC-VA-MD-WV           87.6
+  4      Hartford, CT, CT                      85.7
+  5      Raleigh, NC, NC                       84.8
+
+──────────────────────────────────────────────────────────────────────
+  #04 Career climber, salary maximizer
+  Prioritizes high income, job growth, labor market strength — cost is secondary
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Seattle, WA, WA                      100.0
+  2      Washington, DC, DC-VA-MD-WV           99.5
+  3      San Francisco, CA, CA                 96.1
+  4      Denver, CO, CO                        93.2
+  5      Boston, MA, MA-NH                     92.8
+
+──────────────────────────────────────────────────────────────────────
+  #05 Equity-focused progressive
+  Cares deeply about inequality, poverty, diversity — economic justice over personal wealth
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Washington, DC, DC-VA-MD-WV          100.0
+  2      Minneapolis, MN, MN-WI                92.1
+  3      Raleigh, NC, NC                       88.0
+  4      Denver, CO, CO                        85.5
+  5      Seattle, WA, WA                       85.2
+
+──────────────────────────────────────────────────────────────────────
+  #06 Foodie and nightlife seeker
+  Restaurant density, bar scene, cafe culture are top priority — art scene also matters
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      San Francisco, CA, CA                100.0
+  2      Seattle, WA, WA                       98.0
+  3      Portland, OR, OR-WA                   95.8
+  4      Portland, ME, ME                      93.5
+  5      Denver, CO, CO                        87.7
+
+──────────────────────────────────────────────────────────────────────
+  #07 Arts and culture devotee
+  Museums, music venues, theater, bookstores — wants a creative city, not just a food scene
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      San Francisco, CA, CA                100.0
+  2      Seattle, WA, WA                       95.1
+  3      Portland, ME, ME                      92.5
+  4      Portland, OR, OR-WA                   90.7
+  5      Boston, MA, MA-NH                     87.7
+
+──────────────────────────────────────────────────────────────────────
+  #08 Outdoor recreation obsessive
+  Hiking, trails, parks, nature — will sacrifice cost and culture for green space
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, ME, ME                     100.0
+  2      Portland, OR, OR-WA                   98.7
+  3      Seattle, WA, WA                       92.8
+  4      Anchorage, AK, AK                     88.3
+  5      Baltimore, MD, MD                     86.8
+
+──────────────────────────────────────────────────────────────────────
+  #09 Balanced lifestyle seeker
+  Wants it all — good food, culture, outdoors, reasonable cost. No single dominant priority.
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       96.2
+  3      Portland, ME, ME                      92.9
+  4      San Francisco, CA, CA                 90.9
+  5      Washington, DC, DC-VA-MD-WV           90.9
+
+──────────────────────────────────────────────────────────────────────
+  #10 Car-free urbanist
+  No car, wants walkability, bike lanes, dense transit — commute by foot or transit only
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Seattle, WA, WA                      100.0
+  2      San Francisco, CA, CA                 98.7
+  3      Portland, OR, OR-WA                   95.8
+  4      Washington, DC, DC-VA-MD-WV           94.0
+  5      Boston, MA, MA-NH                     91.2
+
+──────────────────────────────────────────────────────────────────────
+  #11 Short commute above all else
+  Burned out on 90-minute commutes, wants to live close to work, drive time is everything
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       93.2
+  3      Washington, DC, DC-VA-MD-WV           90.9
+  4      Minneapolis, MN, MN-WI                90.8
+  5      San Francisco, CA, CA                 89.3
+
+──────────────────────────────────────────────────────────────────────
+  #12 Flexible renter, wants mobility
+  Doesn't want to be locked in, high renter rate and housing flexibility matter
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       99.9
+  3      San Francisco, CA, CA                 96.4
+  4      Washington, DC, DC-VA-MD-WV           93.7
+  5      Boston, MA, MA-NH                     88.6
+
+──────────────────────────────────────────────────────────────────────
+  #13 Clean air / environment obsessed
+  Has asthma, allergies — AQI is non-negotiable, green space and outdoor access also elevated
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Portland, ME, ME                      96.2
+  3      Seattle, WA, WA                       91.7
+  4      Anchorage, AK, AK                     91.6
+  5      Baltimore, MD, MD                     89.2
+
+──────────────────────────────────────────────────────────────────────
+  #14 Healthcare dependent
+  Has chronic condition, needs reliable hospital access, high insurance coverage rate essential
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       99.8
+  3      Baltimore, MD, MD                     96.4
+  4      Portland, ME, ME                      89.9
+  5      Boston, MA, MA-NH                     88.4
+
+──────────────────────────────────────────────────────────────────────
+  #15 Fitness and wellness lifestyle
+  Gym culture, active population, low obesity, mental health matters — wants a healthy city
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       99.5
+  3      Portland, ME, ME                      94.9
+  4      Baltimore, MD, MD                     91.9
+  5      San Francisco, CA, CA                 91.5
+
+──────────────────────────────────────────────────────────────────────
+  #16 Civically engaged activist
+  Voter turnout, civic engagement, community involvement — wants an engaged city
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Washington, DC, DC-VA-MD-WV          100.0
+  2      Minneapolis, MN, MN-WI                97.1
+  3      Seattle, WA, WA                       95.4
+  4      Denver, CO, CO                        93.2
+  5      Raleigh, NC, NC                       92.0
+
+──────────────────────────────────────────────────────────────────────
+  #17 Diversity and inclusion seeker
+  Wants a diverse, inclusive community — diversity index and equity are top signals
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Washington, DC, DC-VA-MD-WV          100.0
+  2      Seattle, WA, WA                       89.4
+  3      San Francisco, CA, CA                 88.5
+  4      Minneapolis, MN, MN-WI                84.7
+  5      Raleigh, NC, NC                       84.5
+
+──────────────────────────────────────────────────────────────────────
+  #18 Education-obsessed parent
+  Has two kids, wants high education attainment, broadband, low child poverty — schools matter most
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Washington, DC, DC-VA-MD-WV          100.0
+  2      Seattle, WA, WA                       93.7
+  3      Minneapolis, MN, MN-WI                93.6
+  4      Portland, OR, OR-WA                   89.3
+  5      Raleigh, NC, NC                       89.3
+
+──────────────────────────────────────────────────────────────────────
+  #19 Retiring boomer, low stress
+  Retiring soon, fixed income, wants low cost, good healthcare access, clean air, no traffic
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Minneapolis, MN, MN-WI                90.1
+  3      Hartford, CT, CT                      89.1
+  4      Baltimore, MD, MD                     88.5
+  5      Anchorage, AK, AK                     85.5
+
+──────────────────────────────────────────────────────────────────────
+  #20 Young professional, big city feel
+  26, just got first real job, wants energy, food scene, arts, transit — doesn't mind rent
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      San Francisco, CA, CA                100.0
+  2      Seattle, WA, WA                       97.8
+  3      Washington, DC, DC-VA-MD-WV           90.9
+  4      Denver, CO, CO                        89.7
+  5      Portland, OR, OR-WA                   89.6
+
+──────────────────────────────────────────────────────────────────────
+  #21 Nature + affordability combo
+  Wants outdoor access AND low cost — willing to sacrifice culture and nightlife
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Hartford, CT, CT                      93.3
+  3      Anchorage, AK, AK                     90.1
+  4      Minneapolis, MN, MN-WI                88.8
+  5      Portland, ME, ME                      85.3
+
+──────────────────────────────────────────────────────────────────────
+  #22 Transit + culture urbanist
+  Wants walkable, transit-rich neighborhood with strong arts scene — classic urban liberal
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      San Francisco, CA, CA                100.0
+  2      Seattle, WA, WA                       99.5
+  3      Washington, DC, DC-VA-MD-WV           94.7
+  4      Portland, OR, OR-WA                   93.5
+  5      Denver, CO, CO                        90.2
+
+──────────────────────────────────────────────────────────────────────
+  #23 Health + outdoor combo
+  Active lifestyle, wants clean air, trails, gyms, low obesity — wellness is the whole identity
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Portland, ME, ME                      98.1
+  3      Seattle, WA, WA                       95.3
+  4      Baltimore, MD, MD                     89.8
+  5      Anchorage, AK, AK                     88.9
+
+──────────────────────────────────────────────────────────────────────
+  #24 Midwest pragmatist  [filter: {'states': ['OH', 'IN', 'IL', 'MI', 'WI', 'MN', 'IA', 'MO']}]
+  Practical, wants good job market, affordable housing, short commute — Midwest open
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Minneapolis, MN, MN-WI               100.0
+  2      Omaha, NE, NE-IA                      51.6
+  3      Grand Rapids, MI, MI                  48.9
+  4      Kansas City, MO, MO-KS                47.5
+  5      Columbus, OH, OH                      46.7
+
+──────────────────────────────────────────────────────────────────────
+  #25 Southeast budget seeker  [filter: {'states': ['NC', 'SC', 'GA', 'FL', 'TN', 'AL', 'VA']}]
+  Wants cheap Southeast city with decent job market and reasonable quality of life
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Washington, DC, DC-VA-MD-WV          100.0
+  2      Raleigh, NC, NC                       94.0
+  3      Greenville, SC, SC                    55.5
+  4      Charlotte, NC, NC-SC                  49.9
+  5      Greensboro, NC, NC                    44.6
+
+──────────────────────────────────────────────────────────────────────
+  #26 West Coast transplant, staying West  [filter: {'states': ['WA', 'OR', 'CA', 'CO', 'NV', 'AZ']}]
+  Leaving San Francisco, wants to stay West Coast but needs relief on housing costs
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       88.9
+  3      Denver, CO, CO                        83.3
+  4      San Francisco, CA, CA                 81.1
+  5      San Diego, CA, CA                     51.0
+
+──────────────────────────────────────────────────────────────────────
+  #27 Avoiding cold weather  [filter: {'states': ['FL', 'TX', 'AZ', 'NV', 'NM', 'GA', 'SC', 'NC']}]
+  Hates winter, wants South or Southwest, outdoor access year-round, low cost preferred
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Raleigh, NC, NC                      100.0
+  2      Greenville, SC, SC                    71.5
+  3      Greensboro, NC, NC                    53.5
+  4      Tucson, AZ, AZ                        52.1
+  5      Charlotte, NC, NC-SC                  44.6
+
+──────────────────────────────────────────────────────────────────────
+  #28 Everything but California  [filter: {'exclude_states': ['CA']}]
+  Done with California costs and politics, open to anywhere else
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Minneapolis, MN, MN-WI               100.0
+  2      Portland, OR, OR-WA                   96.5
+  3      Hartford, CT, CT                      87.3
+  4      Washington, DC, DC-VA-MD-WV           86.9
+  5      Anchorage, AK, AK                     86.0
+
+──────────────────────────────────────────────────────────────────────
+  #29 Coworking remote worker, coffee shop regular
+  Works from cafes and coworking spaces, wants dense cafe/coworking scene, walkable, affordable
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Portland, OR, OR-WA                  100.0
+  2      Seattle, WA, WA                       95.9
+  3      San Francisco, CA, CA                 94.0
+  4      Washington, DC, DC-VA-MD-WV           92.1
+  5      Minneapolis, MN, MN-WI                89.7
+
+──────────────────────────────────────────────────────────────────────
+  #30 Truly equal weights (baseline)
+  No strong priorities — tests equal weight baseline behavior
+  Weight sum: 1.0
+  Rank   City                                 Score
+  1      Seattle, WA, WA                      100.0
+  2      Washington, DC, DC-VA-MD-WV           96.4
+  3      Portland, OR, OR-WA                   96.3
+  4      San Francisco, CA, CA                 93.4
+  5      Boston, MA, MA-NH                     89.6
+
+══════════════════════════════════════════════════════════════════════
+  SUMMARY
+══════════════════════════════════════════════════════════════════════
+
+  Personas run:       30/30
+  Errors:             0
+  Unique #1 cities:   7
+  Pass: target is 6+ unique cities reaching #1
+
+  #1 City Distribution (7 unique):
+    Portland, OR                        ████████████ (12)
+    Washington, DC                      █████ (5)
+    Minneapolis, MN                     ████ (4)
+    San Francisco, CA                   ████ (4)
+    Seattle, WA                         ███ (3)
+    Portland, ME                        █ (1)
+    Raleigh, NC                         █ (1)
+
+  Top 3 Appearances (breadth check):
+    Seattle, WA                         ████████████████████ (20)
+    Portland, OR                        ███████████████████ (19)
+    Washington, DC                      ███████████ (11)
+    Minneapolis, MN                     █████████ (9)
+    San Francisco, CA                   █████████ (9)
+    Portland, ME                        ██████ (6)
+    Hartford, CT                        █████ (5)
+    Raleigh, NC                         ███ (3)
+    Greenville, SC                      ██ (2)
+    Baltimore, MD                       █ (1)
+    Anchorage, AK                       █ (1)
+    Omaha, NE                           █ (1)
+    Grand Rapids, MI                    █ (1)
+    Denver, CO                          █ (1)
+    Greensboro, NC                      █ (1)
+
+  Dominance check (any city #1 in >8 personas = concern):
+    Portland, OR                         12 times ⚠ HIGH
+    Washington, DC                        5 times ✓
+    Minneapolis, MN                       4 times ✓
+
+  Weight sum validation: All 1.0 ✓
+
+══════════════════════════════════════════════════════════════════════
