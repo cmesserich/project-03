@@ -15,9 +15,9 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     networks:
-      - project-network
+      - project01
 
 networks:
-  project-network:
+  project01:
     external: true
-    name: project-network
+    name: project-01_project01
