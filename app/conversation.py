@@ -259,6 +259,13 @@ class ConversationManager:
     def get_filters(self) -> Optional[dict]:
         return get_filters(self.latest_state)
 
+    def get_target_city_id(self) -> Optional[str]:
+        """Returns the target_city_id from state if the LLM set one."""
+        if not self.latest_state:
+            return None
+        val = self.latest_state.get("target_city_id")
+        return str(val) if val else None
+
     # ── Limit checks ──────────────────────────────────────────
 
     def at_turn_limit(self) -> bool:

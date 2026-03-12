@@ -27,7 +27,7 @@
       background: var(--cream);
       color: var(--ink);
       font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
+      font-size: 16px;
       line-height: 1.6;
     }
 
@@ -35,10 +35,9 @@
 
     .layout {
       display: grid;
-      grid-template-columns: 1fr 340px;
+      grid-template-columns: 1fr 520px;
       grid-template-rows: 56px 1fr;
       height: 100vh;
-      max-width: 1200px;
       margin: 0 auto;
     }
 
@@ -246,13 +245,13 @@
 
     .results-header h2 {
       font-family: 'Fraunces', serif;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 400;
       color: var(--ink);
     }
 
     .results-header p {
-      font-size: 12px;
+      font-size: 14px;
       color: var(--muted);
       margin-top: 2px;
     }
@@ -296,7 +295,7 @@
 
     .city-rank {
       font-family: 'Space Mono', monospace;
-      font-size: 10px;
+      font-size: 11px;
       color: var(--terracotta);
       font-weight: 700;
       letter-spacing: 0.05em;
@@ -304,7 +303,7 @@
 
     .city-name {
       font-family: 'Fraunces', serif;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 400;
       color: var(--ink);
       flex: 1;
@@ -312,7 +311,7 @@
 
     .city-score {
       font-family: 'Space Mono', monospace;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--muted);
     }
 
@@ -350,6 +349,111 @@
       font-family: 'Space Mono', monospace;
       font-size: 10px;
       color: var(--ink);
+    }
+
+    /* ── Stats toggle button ─────────────────── */
+
+    .stats-toggle {
+      width: 100%;
+      margin-top: 10px;
+      padding: 6px 0;
+      background: none;
+      border: none;
+      border-top: 1px solid var(--sand);
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: color 0.15s;
+    }
+
+    .stats-toggle:hover { color: var(--terracotta); }
+
+    .stats-toggle .chevron {
+      display: inline-block;
+      transition: transform 0.2s ease;
+      font-style: normal;
+    }
+
+    .city-card.expanded .stats-toggle .chevron {
+      transform: rotate(180deg);
+    }
+
+    /* ── Stats drawer ────────────────────────── */
+
+    .stats-drawer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+
+    .city-card.expanded .stats-drawer {
+      max-height: 9999px;
+    }
+
+    .stats-drawer-inner {
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .stats-category-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 6px;
+    }
+
+    .stat-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .stat-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .stat-descriptor {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stats-loading {
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+      padding: 12px 0;
     }
 
     /* ── Empty state ─────────────────────────── */
@@ -483,7 +587,7 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    bubble.textContent = text;
+    bubble.textContent = text.replace(/\*\*(.+?)\*\*/g, '$1');
 
     wrapper.appendChild(label);
     wrapper.appendChild(bubble);
@@ -526,6 +630,7 @@
     cities.forEach(city => {
       const card = document.createElement('div');
       card.className = 'city-card';
+      card.dataset.geoId = city.geo_id;
 
       const score = city.personalized_score ?? 0;
 
@@ -538,25 +643,69 @@
         <div class="score-bar-track">
           <div class="score-bar-fill" style="width: ${score}%"></div>
         </div>
-        ${city.sub_scores ? `
-        <div class="sub-scores">
-          ${Object.entries({
-            'Econ':      city.sub_scores.econ,
-            'Lifestyle': city.sub_scores.lifestyle,
-            'Community': city.sub_scores.community,
-            'Mobility':  city.sub_scores.mobility,
-            'Health':    city.sub_scores.health,
-          }).filter(([,v]) => v != null).map(([label, val]) => `
-            <div class="sub-score-item">
-              <span class="sub-score-label">${label}</span>
-              <span class="sub-score-val">${Number(val).toFixed(0)}</span>
-            </div>
-          `).join('')}
-        </div>` : ''}
+        <button class="stats-toggle" onclick="toggleStats(this)">
+          View Stats <span class="chevron">&#9660;</span>
+        </button>
+        <div class="stats-drawer">
+          <div class="stats-drawer-inner"></div>
+        </div>
       `;
 
       resultsEl.appendChild(card);
     });
+  }
+
+  // ── Toggle stats drawer ─────────────────────
+  async function toggleStats(btn) {
+    const card   = btn.closest('.city-card');
+    const drawer = card.querySelector('.stats-drawer');
+    const inner  = card.querySelector('.stats-drawer-inner');
+    const geoId  = card.dataset.geoId;
+
+    // Toggle collapsed state
+    const isOpen = card.classList.toggle('expanded');
+
+    if (!isOpen) return; // collapsing — nothing to fetch
+
+    // Already loaded — just re-open
+    if (card.dataset.statsLoaded) return;
+
+    // First open — fetch and render
+    inner.innerHTML = '<div class="stats-loading">Loading...</div>';
+
+    try {
+      const res = await fetch(`/api/city/${geoId}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+
+      // Group stats by category
+      const grouped = {};
+      data.stats.forEach(stat => {
+        if (!grouped[stat.category]) grouped[stat.category] = [];
+        grouped[stat.category].push(stat);
+      });
+
+      inner.innerHTML = Object.entries(grouped).map(([category, stats]) => `
+        <div>
+          <div class="stats-category-label">${category}</div>
+          ${stats.map(s => `
+            <div class="stat-row">
+              <div class="stat-row-top">
+                <span class="stat-label">${s.label}</span>
+                <span class="stat-value">${s.value}</span>
+              </div>
+              <div class="stat-descriptor">${s.descriptor}</div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+
+      card.dataset.statsLoaded = 'true';
+
+    } catch (err) {
+      inner.innerHTML = '<div class="stats-loading">Could not load stats.</div>';
+      console.error('Stats fetch failed:', err);
+    }
   }
 
   // ── Set UI state ────────────────────────────

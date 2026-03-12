@@ -124,9 +124,15 @@ def execute_tools(manager: ConversationManager) -> dict:
                 )
 
         elif tool_name == "get_city_detail":
-            # City detail requires a cbsa_code — LLM should have included it
-            # in the state. For now we skip if not present.
-            pass
+            cbsa_code = manager.get_target_city_id()
+            if cbsa_code:
+                result = dispatch("get_city_detail", cbsa_code=cbsa_code)
+                results["get_city_detail"] = result
+            else:
+                results["get_city_detail"] = {
+                    "success": False,
+                    "error":   "No target_city_id found in state.",
+                }
 
         elif tool_name in ("generate_map", "generate_chart", "generate_stat_summary"):
             # Planned for v2 — no-op at MVP
@@ -154,6 +160,35 @@ def build_tool_context(tool_results: dict) -> Optional[str]:
             "QUERY RESULTS — include these in your response to the user:\n\n"
             + tool_results["format_results"]["markdown"]
         )
+
+    if "get_city_detail" in tool_results:
+        detail_result = tool_results["get_city_detail"]
+        if detail_result["success"]:
+            d = detail_result["detail"]
+            name = d.get("name", "this city")
+            summary_lines = [f"CITY DETAIL FOR {name.upper()} — use these stats naturally in your response. Do not expose raw field names or score values. Cite numbers conversationally (e.g. 'median rent runs about $X/mo'):\n"]
+            summary_lines.append(f"Population: {d.get('population'):,}" if d.get('population') else "")
+            summary_lines.append(f"Median household income: ${int(d['median_household_income']):,}" if d.get('median_household_income') else "")
+            summary_lines.append(f"Median gross rent: ${int(d['median_gross_rent']):,}/mo" if d.get('median_gross_rent') else "")
+            summary_lines.append(f"Median home value: ${int(d['median_home_value']):,}" if d.get('median_home_value') else "")
+            summary_lines.append(f"Poverty rate: {d.get('poverty_rate')}%" if d.get('poverty_rate') else "")
+            summary_lines.append(f"Unemployment rate: {d.get('unemployment_rate')}%" if d.get('unemployment_rate') else "")
+            summary_lines.append(f"Restaurant density (per sq mi): {round(float(d['poi_restaurant_density']), 1)}" if d.get('poi_restaurant_density') else "")
+            summary_lines.append(f"Trail density (per sq mi): {round(float(d['poi_trail_density']), 1)}" if d.get('poi_trail_density') else "")
+            summary_lines.append(f"Bachelor's degree or higher: {d.get('pct_bachelors_or_higher')}%" if d.get('pct_bachelors_or_higher') else "")
+            summary_lines.append(f"Diversity index: {d.get('diversity_index')}" if d.get('diversity_index') else "")
+            summary_lines.append(f"Avg commute time: {d.get('avg_commute_time_min')} min" if d.get('avg_commute_time_min') else "")
+            summary_lines.append(f"Public transit usage: {d.get('pct_public_transit')}%" if d.get('pct_public_transit') else "")
+            summary_lines.append(f"Air quality index (avg): {d.get('avg_aqi')} (lower is better)" if d.get('avg_aqi') else "")
+            summary_lines.append(f"Health insurance coverage: {d.get('health_insurance_coverage')}%" if d.get('health_insurance_coverage') else "")
+            summary_lines.append(f"Obesity rate: {d.get('obesity_rate')}%" if d.get('obesity_rate') else "")
+            parts.append("\n".join(l for l in summary_lines if l))
+        else:
+            parts.append(
+                f"TOOL ERROR: get_city_detail failed — "
+                f"{detail_result.get('error', 'unknown error')}. "
+                f"Acknowledge this to the user and offer to continue."
+            )
 
     if "query_cities" in tool_results and not tool_results["query_cities"]["success"]:
         parts.append(

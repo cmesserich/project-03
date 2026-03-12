@@ -63,7 +63,7 @@ def tool_query_cities(
     """
     try:
         validated_weights = validate_weights(weights)
-        cities = score_cities(validated_weights, filters=filters, limit=limit)
+        cities = score_cities(validated_weights, filters=filters or {}, limit=limit)
         return {
             "success":         True,
             "cities":          cities,
@@ -155,27 +155,28 @@ def tool_format_results(cities: list) -> dict:
     try:
         lines = []
         for city in cities:
-            rank  = city.get("rank", "?")
-            name  = city.get("name", "Unknown")
-            state = city.get("state", "")
-            score = city.get("personalized_score", 0)
+            rank   = city.get("rank", "?")
+            name   = city.get("name", "Unknown")
+            state  = city.get("state", "")
+            score  = city.get("personalized_score", 0)
+            geo_id = city.get("geo_id", "")
 
             # Score bar — 10 chars wide, filled proportionally
             filled = round(score / 10)
             bar = "█" * filled + "░" * (10 - filled)
 
-            lines.append(f"**{rank}. {name}**  `{bar}` {score:.1f}/100")
+            lines.append(f"**{rank}. {name}**  `{bar}` {score:.1f}/100  [id:{geo_id}]")
 
             # Sub-scores if present — compact single line
             sub = city.get("sub_scores")
             if sub:
                 parts = []
                 labels = {
-                    "econ":      "💰 Econ",
-                    "lifestyle": "🍕 Life",
-                    "community": "🤝 Comm",
-                    "mobility":  "🚌 Mobi",
-                    "health":    "🫁 Health",
+                    "econ":      "Econ",
+                    "lifestyle": "Lifestyle",
+                    "community": "Community",
+                    "mobility":  "Mobility",
+                    "health":    "Health",
                 }
                 for key, label in labels.items():
                     if key in sub:
