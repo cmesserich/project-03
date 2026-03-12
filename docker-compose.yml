@@ -1,23 +1,9 @@
 services:
   project03-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: project03-app
-    restart: unless-stopped
     ports:
       - "8003:8003"
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    networks:
-      - project01
-
-networks:
-  project01:
-    external: true
-    name: project-01_project01
+    env_file:
+      - .env
+    restart: unless-stopped
