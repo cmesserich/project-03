@@ -303,7 +303,7 @@
             <span class="weight-val">{{ "%.3f"|format(val) }}</span>
           </div>
           <div class="weight-bar-wrap">
-            <div class="weight-bar" style="width:{{ (val * 500)|int|min(100) }}%"></div>
+            <div class="weight-bar" style="width:{{ [(val * 500)|int, 100]|min }}%"></div>
           </div>
         </div>
         {% endfor %}

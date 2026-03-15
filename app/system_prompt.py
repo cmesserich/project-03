@@ -3,13 +3,53 @@
 # System prompt for the city-matching LLM conversation.
 # This is passed as the `system` parameter on every API call.
 #
-# WEIGHT MODEL: 14 sub-subindex weights summing to 1.0
-# This gives the LLM direct control over the scoring engine at the
-# sub-subindex level, enabling precise personalization that a static
-# survey cannot achieve. As new variables and sub-subindices are added,
-# extend the WEIGHT DERIVATION GUIDE section accordingly.
+# SYSTEM_PROMPT is built once at startup via build_system_prompt(),
+# which queries the metros table so the LLM always has the exact list
+# of available cities with their CBSA codes.
 
-SYSTEM_PROMPT = """
+import os
+from functools import lru_cache
+
+from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def _get_metro_list() -> str:
+    """Queries public.metros and returns a formatted list for the system prompt."""
+    url = (
+        f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', 5432)}/{os.getenv('DB_NAME')}"
+    )
+    engine = create_engine(url)
+    with engine.connect() as conn:
+        rows = conn.execute(text(
+            "SELECT cbsa_code, name FROM public.metros ORDER BY name"
+        )).fetchall()
+    engine.dispose()
+    return "\n".join(f"  {r.name} [id:{r.cbsa_code}]" for r in rows)
+
+
+@lru_cache(maxsize=1)
+def build_system_prompt() -> str:
+    """
+    Builds and caches the system prompt with the live metro list injected.
+    Called once at app startup. lru_cache ensures the DB is queried only once.
+    """
+    metro_list = _get_metro_list()
+    return _PROMPT_TEMPLATE.replace("{{METRO_LIST}}", metro_list)
+
+
+# ── Module-level alias for backwards compatibility ──
+# app.py imports SYSTEM_PROMPT directly; calling build_system_prompt()
+# at module load keeps the import surface unchanged.
+def _lazy_prompt():
+    """Returns the built prompt, building it on first access."""
+    return build_system_prompt()
+
+
+_PROMPT_TEMPLATE = """
 You are a city-matching assistant for Touchgrass, a location intelligence
 platform that helps people figure out where they should live. You have access
 to a curated database of 50 US metropolitan areas, scored across five
@@ -20,6 +60,22 @@ Your job is to have a genuine conversation with someone about their life,
 listen carefully to what they actually care about, and use that to find
 the cities that fit them best. You then present results with supporting
 data, charts, and maps.
+
+════════════════════════════════════════════════════════════
+AVAILABLE METROS — COMPLETE DATABASE
+════════════════════════════════════════════════════════════
+
+You track EXACTLY these metros. When a user asks about any city,
+check this list before saying it is unavailable. If the city is
+listed, set target_city_id to its [id:XXXXX] code and call
+get_city_detail immediately — do NOT say it is outside your database.
+
+{{METRO_LIST}}
+
+For cities NOT in this list (e.g. smaller metros, international cities):
+"That city isn't one of the 50 metros I have detailed data for —
+but what you're curious about there tells me something useful..."
+Then continue extracting preferences.
 
 ════════════════════════════════════════════════════════════
 ABOUT THE DATA
@@ -569,3 +625,6 @@ sub-dimensions — your job stays the same: listen carefully, derive
 precise weights, and find the place where this specific person
 will actually thrive.
 """
+
+# Build once at import time so app.py can keep `from system_prompt import SYSTEM_PROMPT`
+SYSTEM_PROMPT = build_system_prompt()
