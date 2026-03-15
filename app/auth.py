@@ -136,15 +136,18 @@ def _is_allowed_admin_ip(ip: str) -> bool:
     """
     Checks whether the IP falls within ADMIN_ALLOWED_NETWORKS.
     Env var accepts comma-separated CIDRs, e.g. "192.168.68.0/24,10.0.0.1/32".
-    Defaults to loopback only.
+    Defaults to 0.0.0.0/0 (allow all) — restrict via env var when ready.
     """
-    allowed = os.getenv("ADMIN_ALLOWED_NETWORKS", "127.0.0.1/32")
+    allowed = os.getenv("ADMIN_ALLOWED_NETWORKS", "0.0.0.0/0")
     try:
         client = ipaddress.ip_address(ip)
         for cidr in allowed.split(","):
-            network = ipaddress.ip_network(cidr.strip(), strict=False)
-            if client in network:
-                return True
+            try:
+                network = ipaddress.ip_network(cidr.strip(), strict=False)
+                if client in network:
+                    return True
+            except (ValueError, TypeError):
+                continue
     except ValueError:
         return False
     return False
