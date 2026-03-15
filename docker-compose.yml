@@ -2,8 +2,7 @@ services:
   project03-app:
     build: .
     container_name: project03-app
-    ports:
-      - "8003:8003"
+    network_mode: host   # container uses host network stack — real client IPs visible to app
     env_file:
       - .env
     restart: unless-stopped
