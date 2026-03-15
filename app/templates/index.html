@@ -73,6 +73,162 @@
       border-radius: 20px;
     }
 
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .history-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: 1px solid var(--sand);
+      border-radius: var(--radius);
+      padding: 4px 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .history-btn:hover, .history-btn.active {
+      border-color: var(--terracotta);
+      color: var(--terracotta);
+    }
+
+    .user-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color 0.15s;
+    }
+
+    .logout-btn:hover { color: var(--terracotta); }
+
+    /* ── History panel ───────────────────────── */
+
+    .history-panel {
+      position: fixed;
+      top: 56px;
+      left: -340px;
+      width: 320px;
+      height: calc(100vh - 56px);
+      background: var(--cream);
+      border-right: 1px solid var(--sand);
+      z-index: 50;
+      transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(30,26,22,0.06);
+    }
+
+    .history-panel.open { left: 0; }
+
+    .history-panel-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--sand);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .history-panel-header h3 {
+      font-family: 'Fraunces', serif;
+      font-size: 17px;
+      font-weight: 400;
+    }
+
+    .new-chat-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--terracotta);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .new-chat-btn:hover { background: #b0552f; }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
+
+    .history-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--sand-light);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .history-item:hover { background: var(--sand-light); }
+    .history-item.active { background: var(--sand-light); border-left: 2px solid var(--terracotta); }
+
+    .history-item-date {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .history-item-cities {
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    .history-item-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .history-empty {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .history-loading {
+      padding: 24px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     /* ── Chat panel ──────────────────────────── */
 
     .chat-panel {
@@ -509,7 +665,25 @@
   <header>
     <a class="wordmark" href="/">Touchgrass</a>
     <span class="header-tag">City Match</span>
+    <div class="header-right">
+      <button class="history-btn" id="history-btn" onclick="toggleHistory()">&#9776; History</button>
+      <span class="user-badge" id="user-badge"></span>
+      <form method="POST" action="/auth/logout" style="display:inline">
+        <button class="logout-btn" type="submit">Sign out</button>
+      </form>
+    </div>
   </header>
+
+  <!-- History panel -->
+  <div class="history-panel" id="history-panel">
+    <div class="history-panel-header">
+      <h3>Past Chats</h3>
+      <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="history-loading">Loading…</div>
+    </div>
+  </div>
 
   <!-- Chat -->
   <div class="chat-panel">
@@ -561,8 +735,10 @@
   const resultsEl   = document.getElementById('results-list');
   const toastEl     = document.getElementById('toast');
 
-  let conversationId = null;
-  let isWaiting      = false;
+  let conversationId  = null;
+  let isWaiting       = false;
+  let historyOpen     = false;
+  let currentUsername = '';
 
   // ── Toast ───────────────────────────────────
   function showToast(msg) {
@@ -795,6 +971,109 @@
     }
   }
 
+  // ── Fetch current user ──────────────────────
+  async function fetchMe() {
+    try {
+      const res = await fetch('/api/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      currentUsername = data.username;
+      document.getElementById('user-badge').textContent = data.username;
+    } catch (e) { /* silently ignore */ }
+  }
+
+  // ── History panel toggle ─────────────────────
+  function toggleHistory() {
+    const panel = document.getElementById('history-panel');
+    const btn   = document.getElementById('history-btn');
+    historyOpen = !historyOpen;
+    panel.classList.toggle('open', historyOpen);
+    btn.classList.toggle('active', historyOpen);
+    if (historyOpen) fetchHistory();
+  }
+
+  // ── Fetch and render history ─────────────────
+  async function fetchHistory() {
+    const listEl = document.getElementById('history-list');
+    listEl.innerHTML = '<div class="history-loading">Loading…</div>';
+    try {
+      const res = await fetch('/api/history');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      renderHistory(data.conversations);
+    } catch (e) {
+      listEl.innerHTML = '<div class="history-empty">Could not load history.</div>';
+    }
+  }
+
+  function renderHistory(conversations) {
+    const listEl = document.getElementById('history-list');
+    if (!conversations || conversations.length === 0) {
+      listEl.innerHTML = '<div class="history-empty">No previous chats yet.<br>Start a new conversation to see your history here.</div>';
+      return;
+    }
+
+    listEl.innerHTML = conversations.map(c => {
+      const date = c.created_at
+        ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : '—';
+      const cityNames = c.top_cities.length
+        ? c.top_cities.map(ct => ct.name.split(',')[0]).join(', ')
+        : 'No results yet';
+      const isActive = c.id === conversationId;
+      const meta = `${c.turn_count} turns · ${c.query_count} quer${c.query_count === 1 ? 'y' : 'ies'}`;
+
+      return `
+        <div class="history-item${isActive ? ' active' : ''}" onclick="loadPastConversation('${c.id}')">
+          <div class="history-item-date">${date}</div>
+          <div class="history-item-cities">${cityNames}</div>
+          <div class="history-item-meta">${meta}${c.completed ? ' · completed' : ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Load a past conversation's results ───────
+  async function loadPastConversation(id) {
+    try {
+      const res = await fetch(`/api/results/${id}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (data.cities) renderCities(data.cities);
+      // Update active state
+      document.querySelectorAll('.history-item').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('onclick').includes(id));
+      });
+    } catch (e) {
+      showToast('Could not load past results.');
+    }
+  }
+
+  // ── Start a brand-new chat ───────────────────
+  async function startNewChat() {
+    // Close history panel
+    historyOpen = false;
+    document.getElementById('history-panel').classList.remove('open');
+    document.getElementById('history-btn').classList.remove('active');
+
+    // Reset UI
+    document.getElementById('messages').innerHTML = '';
+    document.getElementById('results-list').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted); opacity: 0.5;">
+            <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.65 12a.5.5 0 0 0 .7 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+          </svg>
+        </div>
+        <p>Answer a few questions and we'll find your best matches</p>
+      </div>`;
+    conversationId = null;
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+    inputEl.placeholder = 'Tell me what\'s going on...';
+    await init();
+  }
+
+  fetchMe();
   init();
 </script>
 </body>

@@ -38,6 +38,7 @@ from system_prompt import SYSTEM_PROMPT
 from db import (
     create_conversation, create_conversation_for_user,
     conversation_exists, save_results, get_latest_results,
+    get_user_conversations,
 )
 from auth import SESSION_COOKIE, validate_session
 from routers.auth_routes import router as auth_router
@@ -397,6 +398,29 @@ async def chat(request: ChatRequest):
         "at_limit":        at_limit,
         "conversation_id": request.conversation_id,
     })
+
+
+@app.get("/api/me")
+async def get_me(request: Request):
+    """Returns the current user's basic info. Used by the frontend to show username."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return JSONResponse({
+        "username": user["username"],
+        "id":       user["id"],
+        "is_admin": user["is_admin"],
+    })
+
+
+@app.get("/api/history")
+async def get_history(request: Request):
+    """Returns the logged-in user's conversation history for the history panel."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    conversations = get_user_conversations(user["id"])
+    return JSONResponse({"conversations": conversations})
 
 
 @app.get("/api/results/{conversation_id}")

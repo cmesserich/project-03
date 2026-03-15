@@ -439,6 +439,88 @@ def expire_all_user_sessions(user_id: str) -> None:
         """), {"id": user_id})
 
 
+def get_conversation_detail(conversation_id: str) -> Optional[dict]:
+    """
+    Returns full detail for a single conversation:
+    metadata, all messages, all result snapshots, and signals if present.
+    Used by the admin conversation detail view.
+    """
+    with get_engine().connect() as conn:
+        # Metadata + user
+        meta = conn.execute(text("""
+            SELECT c.id, c.created_at, c.last_active_at, c.completed,
+                   c.turn_count, c.query_count, c.user_id, u.username
+            FROM app3.conversations c
+            LEFT JOIN app3.users u ON u.id = c.user_id
+            WHERE c.id = :id
+        """), {"id": conversation_id}).fetchone()
+
+        if meta is None:
+            return None
+
+        # All messages in order
+        messages = conn.execute(text("""
+            SELECT role, content, turn_number, created_at
+            FROM app3.messages
+            WHERE conversation_id = :id
+            ORDER BY created_at ASC, id ASC
+        """), {"id": conversation_id}).fetchall()
+
+        # All result snapshots
+        results = conn.execute(text("""
+            SELECT id, query_number, derived_weights, top_cities,
+                   filters_applied, weight_sum, created_at
+            FROM app3.conversation_results
+            WHERE conversation_id = :id
+            ORDER BY query_number ASC
+        """), {"id": conversation_id}).fetchall()
+
+        # Signals (if logged)
+        signals = conn.execute(text("""
+            SELECT final_weight_vector, named_cities, named_states,
+                   budget_mentioned, remote_work, has_kids,
+                   turn_count, raw_signal_notes, created_at
+            FROM app3.conversation_signals
+            WHERE conversation_id = :id
+            LIMIT 1
+        """), {"id": conversation_id}).fetchone()
+
+    return {
+        "id":             str(meta.id),
+        "created_at":     meta.created_at.isoformat() if meta.created_at else None,
+        "last_active_at": meta.last_active_at.isoformat() if meta.last_active_at else None,
+        "completed":      meta.completed,
+        "turn_count":     meta.turn_count,
+        "query_count":    meta.query_count,
+        "user_id":        str(meta.user_id) if meta.user_id else None,
+        "username":       meta.username,
+        "messages": [{
+            "role":         r.role,
+            "content":      r.content,
+            "turn_number":  r.turn_number,
+            "created_at":   r.created_at.isoformat() if r.created_at else None,
+            "is_tool":      r.content.startswith("[TOOL RESULTS]"),
+        } for r in messages],
+        "results": [{
+            "query_number":    r.query_number,
+            "top_cities":      r.top_cities,
+            "derived_weights": r.derived_weights,
+            "weight_sum":      float(r.weight_sum) if r.weight_sum else None,
+            "created_at":      r.created_at.isoformat() if r.created_at else None,
+        } for r in results],
+        "signals": {
+            "final_weight_vector": signals.final_weight_vector,
+            "named_cities":        signals.named_cities,
+            "named_states":        signals.named_states,
+            "budget_mentioned":    signals.budget_mentioned,
+            "remote_work":         signals.remote_work,
+            "has_kids":            signals.has_kids,
+            "turn_count":          signals.turn_count,
+            "raw_signal_notes":    signals.raw_signal_notes,
+        } if signals else None,
+    }
+
+
 def list_conversations_admin(limit: int = 200) -> list:
     with get_engine().connect() as conn:
         rows = conn.execute(text("""
@@ -458,6 +540,37 @@ def list_conversations_admin(limit: int = 200) -> list:
         "query_count":    r.query_count,
         "user_id":        str(r.user_id) if r.user_id else None,
         "username":       r.username,
+    } for r in rows]
+
+
+def get_user_conversations(user_id: str, limit: int = 30) -> list:
+    """
+    Returns a user's conversation history, newest first.
+    Each row includes the top 3 cities from the most recent query result.
+    """
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("""
+            SELECT c.id, c.created_at, c.turn_count, c.query_count, c.completed,
+                   cr.top_cities
+            FROM app3.conversations c
+            LEFT JOIN LATERAL (
+                SELECT top_cities
+                FROM app3.conversation_results
+                WHERE conversation_id = c.id
+                ORDER BY created_at DESC
+                LIMIT 1
+            ) cr ON true
+            WHERE c.user_id = :user_id
+            ORDER BY c.created_at DESC
+            LIMIT :limit
+        """), {"user_id": user_id, "limit": limit}).fetchall()
+    return [{
+        "id":          str(r.id),
+        "created_at":  r.created_at.isoformat() if r.created_at else None,
+        "turn_count":  r.turn_count or 0,
+        "query_count": r.query_count or 0,
+        "completed":   r.completed,
+        "top_cities":  r.top_cities[:3] if r.top_cities else [],
     } for r in rows]
 
 

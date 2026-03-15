@@ -1,0 +1,367 @@
+{% extends "admin/base.html" %}
+{% set active_page = "conversations" %}
+{% block title %}Conversation {{ c.id[:8] }}{% endblock %}
+{% block page_title %}
+  <a href="/admin/conversations" style="color:var(--muted);text-decoration:none;font-size:0.9rem">Conversations</a>
+  <span style="color:var(--border);margin:0 0.5rem">/</span>
+  <span class="mono">{{ c.id[:8] }}…</span>
+{% endblock %}
+
+{% block head %}
+<style>
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── Transcript ── */
+  .transcript {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .msg {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .msg-role {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+    width: 70px;
+    text-align: center;
+  }
+
+  .msg-role.user      { background: rgba(107,143,94,0.2);  color: #8bc97e; }
+  .msg-role.assistant { background: rgba(200,184,154,0.15); color: var(--accent); }
+  .msg-role.tool      { background: rgba(136,136,136,0.15); color: var(--muted); }
+
+  .msg-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    flex: 1;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .msg-body.tool-msg {
+    border-color: rgba(136,136,136,0.2);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .msg-turn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--border);
+    margin-top: 0.35rem;
+    text-align: center;
+    flex-shrink: 0;
+    width: 30px;
+  }
+
+  /* ── Results ── */
+  .results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .result-header-title { font-size: 0.875rem; font-weight: 500; }
+
+  .cities-list { padding: 0.75rem 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+
+  .city-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .city-rank {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 1.5rem;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .city-score {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* ── Weights ── */
+  .weights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.4rem;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .weight-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+  }
+
+  .weight-key { color: var(--muted); }
+
+  .weight-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+  }
+
+  .weight-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 2px;
+  }
+
+  .weight-bar {
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── Signals ── */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .signal-item { font-size: 0.8rem; }
+  .signal-label { color: var(--muted); font-size: 0.7rem; margin-bottom: 0.15rem; }
+  .signal-val { color: var(--text); }
+
+  /* ── Toggle for tool messages ── */
+  .tool-toggle {
+    font-size: 0.75rem;
+    color: var(--muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .tool-toggle:hover { color: var(--text); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Meta stats -->
+<div class="meta-grid">
+  <div class="stat-card">
+    <div class="stat-label">User</div>
+    <div class="stat-value" style="font-size:1rem;margin-top:0.3rem">{{ c.username or 'anonymous' }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Turns</div>
+    <div class="stat-value">{{ c.turn_count or 0 }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Queries</div>
+    <div class="stat-value">{{ c.query_count or 0 }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Status</div>
+    <div class="stat-value" style="font-size:1rem;margin-top:0.3rem">
+      {% if c.completed %}<span class="badge badge-muted">Completed</span>
+      {% else %}<span class="badge badge-green">Active</span>{% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Started</div>
+    <div class="stat-value" style="font-size:0.85rem;margin-top:0.3rem;font-family:'Space Mono',monospace">
+      {{ c.created_at[:16] if c.created_at else '—' }}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Last Active</div>
+    <div class="stat-value" style="font-size:0.85rem;margin-top:0.3rem;font-family:'Space Mono',monospace">
+      {{ c.last_active_at[:16] if c.last_active_at else '—' }}
+    </div>
+  </div>
+</div>
+
+<!-- Transcript -->
+<div class="section-title">Transcript ({{ c.messages | length }} messages)</div>
+<div class="transcript" id="transcript">
+  {% for m in c.messages %}
+    {% if m.is_tool %}
+    <div class="msg" id="tool-{{ loop.index }}">
+      <div class="msg-turn">T{{ m.turn_number }}</div>
+      <div class="msg-role tool">tool</div>
+      <div style="flex:1">
+        <button class="tool-toggle" onclick="toggleTool({{ loop.index }})">show tool context</button>
+        <div class="msg-body tool-msg" id="tool-body-{{ loop.index }}" style="display:none;margin-top:0.4rem">{{ m.content }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="msg">
+      <div class="msg-turn">T{{ m.turn_number }}</div>
+      <div class="msg-role {{ m.role }}">{{ m.role }}</div>
+      <div class="msg-body">{{ m.content }}</div>
+    </div>
+    {% endif %}
+  {% else %}
+    <p style="color:var(--muted)">No messages recorded.</p>
+  {% endfor %}
+</div>
+
+<!-- Query Results -->
+{% if c.results %}
+<div class="section-title">Query Results ({{ c.results | length }} {% if c.results | length == 1 %}query{% else %}queries{% endif %})</div>
+<div class="results-grid">
+  {% for r in c.results %}
+  <div class="result-card">
+    <div class="result-header">
+      <span class="result-header-title">Query {{ r.query_number }}</span>
+      <span class="mono" style="color:var(--muted);font-size:0.7rem">{{ r.created_at[:16] if r.created_at else '' }}</span>
+    </div>
+
+    <!-- Top cities -->
+    <div class="cities-list">
+      {% if r.top_cities %}
+        {% for city in r.top_cities %}
+        <div class="city-row">
+          <span class="city-rank">{{ city.rank }}</span>
+          <span>{{ city.name }}</span>
+          <span class="city-score">{{ "%.1f"|format(city.personalized_score) }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:var(--muted);font-size:0.85rem">No cities recorded.</p>
+      {% endif %}
+    </div>
+
+    <!-- Weight vector -->
+    {% if r.derived_weights %}
+    <div style="border-top:1px solid var(--border);padding:0.5rem 1.25rem 0.25rem">
+      <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Weight Vector</div>
+      <div class="weights-grid">
+        {% for key, val in r.derived_weights.items() %}
+        <div>
+          <div class="weight-row">
+            <span class="weight-key">{{ key }}</span>
+            <span class="weight-val">{{ "%.3f"|format(val) }}</span>
+          </div>
+          <div class="weight-bar-wrap">
+            <div class="weight-bar" style="width:{{ (val * 500)|int|min(100) }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Signals -->
+{% if c.signals %}
+<div class="section-title">Extracted Signals</div>
+<div class="table-wrap" style="margin-bottom:1.75rem">
+  <div class="signals-grid">
+    <div class="signal-item">
+      <div class="signal-label">Named Cities</div>
+      <div class="signal-val">{{ c.signals.named_cities | join(', ') or '—' }}</div>
+    </div>
+    <div class="signal-item">
+      <div class="signal-label">Named States</div>
+      <div class="signal-val">{{ c.signals.named_states | join(', ') or '—' }}</div>
+    </div>
+    <div class="signal-item">
+      <div class="signal-label">Budget Mentioned</div>
+      <div class="signal-val">{{ 'Yes' if c.signals.budget_mentioned else 'No' }}</div>
+    </div>
+    <div class="signal-item">
+      <div class="signal-label">Remote Work</div>
+      <div class="signal-val">{{ 'Yes' if c.signals.remote_work else 'No' }}</div>
+    </div>
+    <div class="signal-item">
+      <div class="signal-label">Has Kids</div>
+      <div class="signal-val">{{ 'Yes' if c.signals.has_kids else 'No' }}</div>
+    </div>
+    {% if c.signals.raw_signal_notes %}
+    <div class="signal-item" style="grid-column:1/-1">
+      <div class="signal-label">Notes</div>
+      <div class="signal-val" style="white-space:pre-wrap">{{ c.signals.raw_signal_notes }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+function toggleTool(idx) {
+  const body = document.getElementById('tool-body-' + idx);
+  const btn  = event.target;
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    btn.textContent = 'hide tool context';
+  } else {
+    body.style.display = 'none';
+    btn.textContent = 'show tool context';
+  }
+}
+</script>
+
+{% endblock %}

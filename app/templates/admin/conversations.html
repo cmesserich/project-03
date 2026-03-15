@@ -19,6 +19,7 @@
         <th>Turns</th>
         <th>Queries</th>
         <th>Status</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -42,6 +43,9 @@
           {% else %}
             <span class="badge badge-green">Active</span>
           {% endif %}
+        </td>
+        <td>
+          <a href="/admin/conversations/{{ c.id }}" class="btn-sm outline">View</a>
         </td>
       </tr>
       {% else %}

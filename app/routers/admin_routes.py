@@ -29,6 +29,7 @@ from auth import hash_password, require_admin
 from db import (
     create_user,
     expire_all_user_sessions,
+    get_conversation_detail,
     get_user_by_email,
     get_user_by_username,
     list_conversations_admin,
@@ -219,4 +220,21 @@ async def admin_conversations(request: Request, admin: dict = Depends(require_ad
         "request":       request,
         "admin":         admin,
         "conversations": conversations,
+    })
+
+
+@router.get("/conversations/{conversation_id}", response_class=HTMLResponse)
+async def admin_conversation_detail(
+    conversation_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    detail = get_conversation_detail(conversation_id)
+    if not detail:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return templates.TemplateResponse("admin/conversation_detail.html", {
+        "request": request,
+        "admin":   admin,
+        "c":       detail,
     })
