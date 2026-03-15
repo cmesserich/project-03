@@ -1,0 +1,66 @@
+{% extends "admin/base.html" %}
+{% set active_page = "dashboard" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Users</div>
+    <div class="stat-value">{{ total_users }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active Users</div>
+    <div class="stat-value">{{ active_users }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active Sessions</div>
+    <div class="stat-value">{{ active_sessions }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Recent Conversations</div>
+    <div class="stat-value">{{ recent_convs | length }}</div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="table-header">
+    <span class="table-title">Recent Conversations</span>
+    <a href="/admin/conversations" class="btn-sm outline">View all</a>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Started</th>
+        <th>Turns</th>
+        <th>Queries</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in recent_convs %}
+      <tr>
+        <td class="mono truncate">{{ c.id[:8] }}…</td>
+        <td>{% if c.username %}<span class="badge badge-muted">{{ c.username }}</span>{% else %}<span style="color:var(--muted)">—</span>{% endif %}</td>
+        <td class="mono" style="color:var(--muted)">{{ c.created_at[:16] if c.created_at else '—' }}</td>
+        <td>{{ c.turn_count or 0 }}</td>
+        <td>{{ c.query_count or 0 }}</td>
+        <td>
+          {% if c.completed %}
+            <span class="badge badge-muted">Completed</span>
+          {% else %}
+            <span class="badge badge-green">Active</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:1.5rem">No conversations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

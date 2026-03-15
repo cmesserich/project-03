@@ -1,0 +1,121 @@
+{% extends "admin/base.html" %}
+{% set active_page = "users" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block content %}
+
+{% if msg %}<div class="flash success">{{ msg }}</div>{% endif %}
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+
+<!-- Create user form -->
+<div class="create-form">
+  <h3>Create New User</h3>
+  <form method="POST" action="/admin/users/create">
+    <div class="form-row">
+      <div class="form-field">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="jsmith" required />
+      </div>
+      <div class="form-field">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="you@example.com" required />
+      </div>
+      <div class="form-field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Min 8 chars" required />
+      </div>
+      <div class="form-field" style="justify-content:flex-end">
+        <div class="checkbox-row">
+          <input type="checkbox" name="is_admin" id="is_admin" value="true" />
+          <label for="is_admin" style="text-transform:none;letter-spacing:0">Admin</label>
+        </div>
+      </div>
+      <div class="form-field" style="flex:0">
+        <label style="visibility:hidden">-</label>
+        <button class="btn-primary" type="submit">Create</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Users table -->
+<div class="table-wrap">
+  <div class="table-header">
+    <span class="table-title">All Users ({{ users | length }})</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Last Login</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td><strong>{{ u.username }}</strong></td>
+        <td style="color:var(--muted)">{{ u.email }}</td>
+        <td>
+          {% if u.is_admin %}
+            <span class="badge badge-yellow">Admin</span>
+          {% else %}
+            <span class="badge badge-muted">User</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.is_active %}
+            <span class="badge badge-green">Active</span>
+          {% else %}
+            <span class="badge badge-red">Inactive</span>
+          {% endif %}
+        </td>
+        <td class="mono" style="color:var(--muted)">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+        <td class="mono" style="color:var(--muted)">{{ u.last_login_at[:16] if u.last_login_at else '—' }}</td>
+        <td>
+          <div class="actions">
+
+            {% if u.is_active %}
+            <form class="inline-form" method="POST" action="/admin/users/{{ u.id }}/deactivate">
+              <button class="btn-sm danger" type="submit">Deactivate</button>
+            </form>
+            {% else %}
+            <form class="inline-form" method="POST" action="/admin/users/{{ u.id }}/activate">
+              <button class="btn-sm success" type="submit">Activate</button>
+            </form>
+            {% endif %}
+
+            {% if u.is_admin %}
+            <form class="inline-form" method="POST" action="/admin/users/{{ u.id }}/demote">
+              <button class="btn-sm outline" type="submit">Remove Admin</button>
+            </form>
+            {% else %}
+            <form class="inline-form" method="POST" action="/admin/users/{{ u.id }}/promote">
+              <button class="btn-sm outline" type="submit">Make Admin</button>
+            </form>
+            {% endif %}
+
+            <!-- Inline password reset -->
+            <form class="inline-form reset-row" method="POST" action="/admin/users/{{ u.id }}/reset-password">
+              <div class="form-field" style="flex:1;min-width:120px">
+                <input class="reset-row" type="password" name="new_password" placeholder="New password" required />
+              </div>
+              <button class="btn-sm outline" type="submit">Reset PW</button>
+            </form>
+
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1.5rem">No users yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

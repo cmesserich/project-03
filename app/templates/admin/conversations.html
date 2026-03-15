@@ -1,0 +1,54 @@
+{% extends "admin/base.html" %}
+{% set active_page = "conversations" %}
+{% block title %}Conversations{% endblock %}
+{% block page_title %}Conversations{% endblock %}
+
+{% block content %}
+
+<div class="table-wrap">
+  <div class="table-header">
+    <span class="table-title">Conversations ({{ conversations | length }})</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Started</th>
+        <th>Last Active</th>
+        <th>Turns</th>
+        <th>Queries</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in conversations %}
+      <tr>
+        <td class="mono truncate" style="color:var(--muted)">{{ c.id[:8] }}…</td>
+        <td>
+          {% if c.username %}
+            <span class="badge badge-muted">{{ c.username }}</span>
+          {% else %}
+            <span style="color:var(--muted)">anonymous</span>
+          {% endif %}
+        </td>
+        <td class="mono" style="color:var(--muted)">{{ c.created_at[:16] if c.created_at else '—' }}</td>
+        <td class="mono" style="color:var(--muted)">{{ c.last_active_at[:16] if c.last_active_at else '—' }}</td>
+        <td>{{ c.turn_count or 0 }}</td>
+        <td>{{ c.query_count or 0 }}</td>
+        <td>
+          {% if c.completed %}
+            <span class="badge badge-muted">Completed</span>
+          {% else %}
+            <span class="badge badge-green">Active</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="color:var(--muted);text-align:center;padding:1.5rem">No conversations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

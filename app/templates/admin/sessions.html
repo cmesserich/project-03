@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% set active_page = "sessions" %}
+{% block title %}Sessions{% endblock %}
+{% block page_title %}Sessions{% endblock %}
+
+{% block content %}
+
+{% if request.query_params.get('msg') %}
+  <div class="flash success">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+
+<div class="table-wrap">
+  <div class="table-header">
+    <span class="table-title">Sessions ({{ sessions | length }})</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Token (prefix)</th>
+        <th>User</th>
+        <th>IP</th>
+        <th>Created</th>
+        <th>Expires</th>
+        <th>Status</th>
+        <th>User Agent</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td class="mono" style="color:var(--muted)">{{ s.session_token }}</td>
+        <td><span class="badge badge-muted">{{ s.username }}</span></td>
+        <td class="mono" style="color:var(--muted)">{{ s.ip_address or '—' }}</td>
+        <td class="mono" style="color:var(--muted)">{{ s.created_at[:16] if s.created_at else '—' }}</td>
+        <td class="mono" style="color:var(--muted)">{{ s.expires_at[:16] if s.expires_at else '—' }}</td>
+        <td>
+          {% if s.is_active %}
+            <span class="badge badge-green">Active</span>
+          {% else %}
+            <span class="badge badge-muted">Expired</span>
+          {% endif %}
+        </td>
+        <td class="truncate" style="color:var(--muted);font-size:0.75rem">{{ s.user_agent or '—' }}</td>
+        <td>
+          {% if s.is_active %}
+          <form class="inline-form" method="POST" action="/admin/sessions/{{ s.user_id }}/expire">
+            <button class="btn-sm danger" type="submit">Expire All</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="color:var(--muted);text-align:center;padding:1.5rem">No sessions yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

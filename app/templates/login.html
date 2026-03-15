@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if mode == 'register' %}Create Account{% else %}Sign In{% endif %} — Touchgrass</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0f0f0f;
+      --surface:    #1a1a1a;
+      --border:     #2a2a2a;
+      --text:       #e8e4dc;
+      --muted:      #888;
+      --accent:     #c8b89a;
+      --accent-dim: #9a8a70;
+      --green:      #6b8f5e;
+      --red:        #c0544a;
+      --radius:     8px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .brand {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .brand-name {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+
+    .brand-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 0.25rem;
+    }
+
+    h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .error-banner {
+      background: rgba(192, 84, 74, 0.15);
+      border: 1px solid rgba(192, 84, 74, 0.4);
+      color: #e07870;
+      border-radius: var(--radius);
+      padding: 0.65rem 0.9rem;
+      font-size: 0.875rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .field {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.35rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      padding: 0.6rem 0.85rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus {
+      border-color: var(--accent-dim);
+    }
+
+    input::placeholder {
+      color: #444;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.7rem;
+      background: var(--accent);
+      color: #1a1408;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: var(--accent-dim); }
+
+    .switch {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .switch a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .switch a:hover { text-decoration: underline; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="card">
+
+    <div class="brand">
+      <div class="brand-name">Touchgrass</div>
+      <div class="brand-sub">City Intelligence Platform</div>
+    </div>
+
+    {% if mode == 'register' %}
+      <h2>Create an account</h2>
+    {% else %}
+      <h2>Sign in to continue</h2>
+    {% endif %}
+
+    {% if error %}
+      <div class="error-banner">{{ error }}</div>
+    {% endif %}
+
+    {% if mode == 'register' %}
+      <form method="POST" action="/auth/register">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" placeholder="e.g. jsmith" required autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="At least 8 characters" required autocomplete="new-password" />
+        </div>
+        <div class="field">
+          <label for="confirm_password">Confirm Password</label>
+          <input id="confirm_password" name="confirm_password" type="password" placeholder="Repeat your password" required autocomplete="new-password" />
+        </div>
+        <button class="btn" type="submit">Create Account</button>
+      </form>
+      <div class="switch">
+        Already have an account? <a href="/auth/login">Sign in</a>
+      </div>
+
+    {% else %}
+      <form method="POST" action="/auth/login">
+        <input type="hidden" name="next" value="{{ next }}" />
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" placeholder="Your username" required autocomplete="username" autofocus />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="Your password" required autocomplete="current-password" />
+        </div>
+        <button class="btn" type="submit">Sign In</button>
+      </form>
+      <div class="switch">
+        No account yet? <a href="/auth/register">Create one</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+</body>
+</html>

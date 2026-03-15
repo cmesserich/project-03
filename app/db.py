@@ -300,6 +300,183 @@ def save_signals(
 
 
 # ─────────────────────────────────────────────
+# AUTH — USERS
+# ─────────────────────────────────────────────
+
+def create_user(username: str, email: str, password_hash: str) -> str:
+    """Creates a new user row and returns the UUID string."""
+    query = text("""
+        INSERT INTO app3.users (username, email, password_hash)
+        VALUES (:username, :email, :password_hash)
+        RETURNING id
+    """)
+    with get_engine().begin() as conn:
+        result = conn.execute(query, {
+            "username":      username,
+            "email":         email,
+            "password_hash": password_hash,
+        })
+        return str(result.fetchone()[0])
+
+
+def get_user_by_username(username: str) -> Optional[dict]:
+    query = text("""
+        SELECT id, username, email, password_hash, is_admin, is_active,
+               created_at, last_login_at
+        FROM app3.users WHERE username = :username
+    """)
+    with get_engine().connect() as conn:
+        row = conn.execute(query, {"username": username}).fetchone()
+    if row is None:
+        return None
+    return {
+        "id":            str(row.id),
+        "username":      row.username,
+        "email":         row.email,
+        "password_hash": row.password_hash,
+        "is_admin":      row.is_admin,
+        "is_active":     row.is_active,
+        "created_at":    row.created_at.isoformat() if row.created_at else None,
+        "last_login_at": row.last_login_at.isoformat() if row.last_login_at else None,
+    }
+
+
+def get_user_by_email(email: str) -> Optional[dict]:
+    query = text("""
+        SELECT id, username, email, password_hash, is_admin, is_active
+        FROM app3.users WHERE email = :email
+    """)
+    with get_engine().connect() as conn:
+        row = conn.execute(query, {"email": email}).fetchone()
+    if row is None:
+        return None
+    return {
+        "id":            str(row.id),
+        "username":      row.username,
+        "email":         row.email,
+        "password_hash": row.password_hash,
+        "is_admin":      row.is_admin,
+        "is_active":     row.is_active,
+    }
+
+
+def update_last_login(user_id: str) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.users SET last_login_at = NOW() WHERE id = :id
+        """), {"id": user_id})
+
+
+def set_user_active(user_id: str, is_active: bool) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.users SET is_active = :active WHERE id = :id
+        """), {"id": user_id, "active": is_active})
+
+
+def set_user_admin(user_id: str, is_admin: bool) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.users SET is_admin = :admin WHERE id = :id
+        """), {"id": user_id, "admin": is_admin})
+
+
+def set_user_password(user_id: str, password_hash: str) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.users SET password_hash = :hash WHERE id = :id
+        """), {"id": user_id, "hash": password_hash})
+
+
+# ─────────────────────────────────────────────
+# AUTH — SESSIONS (admin queries)
+# ─────────────────────────────────────────────
+
+def list_users() -> list:
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("""
+            SELECT id, username, email, is_admin, is_active, created_at, last_login_at
+            FROM app3.users ORDER BY created_at DESC
+        """)).fetchall()
+    return [{
+        "id":            str(r.id),
+        "username":      r.username,
+        "email":         r.email,
+        "is_admin":      r.is_admin,
+        "is_active":     r.is_active,
+        "created_at":    r.created_at.isoformat() if r.created_at else None,
+        "last_login_at": r.last_login_at.isoformat() if r.last_login_at else None,
+    } for r in rows]
+
+
+def list_sessions(limit: int = 200) -> list:
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("""
+            SELECT s.session_token, s.user_id, u.username,
+                   s.created_at, s.expires_at, s.ip_address,
+                   s.user_agent, s.is_active
+            FROM app3.user_sessions s
+            JOIN app3.users u ON u.id = s.user_id
+            ORDER BY s.created_at DESC
+            LIMIT :limit
+        """), {"limit": limit}).fetchall()
+    return [{
+        "session_token": r.session_token[:12] + "…",  # truncated for display
+        "user_id":       str(r.user_id),
+        "username":      r.username,
+        "created_at":    r.created_at.isoformat() if r.created_at else None,
+        "expires_at":    r.expires_at.isoformat() if r.expires_at else None,
+        "ip_address":    r.ip_address,
+        "user_agent":    (r.user_agent or "")[:80],
+        "is_active":     r.is_active,
+    } for r in rows]
+
+
+def expire_all_user_sessions(user_id: str) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.user_sessions SET is_active = FALSE WHERE user_id = :id
+        """), {"id": user_id})
+
+
+def list_conversations_admin(limit: int = 200) -> list:
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("""
+            SELECT c.id, c.created_at, c.last_active_at, c.completed,
+                   c.turn_count, c.query_count, c.user_id, u.username
+            FROM app3.conversations c
+            LEFT JOIN app3.users u ON u.id = c.user_id
+            ORDER BY c.created_at DESC
+            LIMIT :limit
+        """), {"limit": limit}).fetchall()
+    return [{
+        "id":             str(r.id),
+        "created_at":     r.created_at.isoformat() if r.created_at else None,
+        "last_active_at": r.last_active_at.isoformat() if r.last_active_at else None,
+        "completed":      r.completed,
+        "turn_count":     r.turn_count,
+        "query_count":    r.query_count,
+        "user_id":        str(r.user_id) if r.user_id else None,
+        "username":       r.username,
+    } for r in rows]
+
+
+def create_conversation_for_user(user_id: Optional[str] = None) -> str:
+    """
+    Creates a new conversation row linked to a user (if provided).
+    Replaces create_conversation() for authenticated requests.
+    """
+    conversation_id = str(uuid.uuid4())
+    query = text("""
+        INSERT INTO app3.conversations (id, user_id)
+        VALUES (:id, :user_id)
+    """)
+    with get_engine().begin() as conn:
+        conn.execute(query, {"id": conversation_id, "user_id": user_id})
+    return conversation_id
+
+
+# ─────────────────────────────────────────────
 # SMOKE TEST
 # ─────────────────────────────────────────────
 

@@ -24,9 +24,10 @@ from pathlib import Path
 from typing import Optional
 
 import anthropic
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -34,11 +35,54 @@ from conversation import ConversationManager, load_from_db, persist_message
 from tools import dispatch
 from logger import log_conversation_close
 from system_prompt import SYSTEM_PROMPT
-from db import create_conversation, conversation_exists, save_results, get_latest_results
+from db import (
+    create_conversation, create_conversation_for_user,
+    conversation_exists, save_results, get_latest_results,
+)
+from auth import SESSION_COOKIE, validate_session
+from routers.auth_routes import router as auth_router
+from routers.admin_routes import router as admin_router
 
 load_dotenv()
 
 app = FastAPI(title="Touchgrass Project 03")
+app.include_router(auth_router)
+app.include_router(admin_router)
+
+templates = Jinja2Templates(
+    directory=str(Path(__file__).parent / "templates")
+)
+
+# ─────────────────────────────────────────────
+# AUTH MIDDLEWARE
+# Protects all routes except /auth/* and /static/*.
+# HTML requests → redirect to /auth/login
+# API requests  → 401 JSON
+# ─────────────────────────────────────────────
+
+_PUBLIC_PATHS = {"/auth/login", "/auth/register"}
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+
+    # Always allow auth routes and static assets
+    if path in _PUBLIC_PATHS or path.startswith("/static/"):
+        return await call_next(request)
+
+    # Validate session cookie
+    token = request.cookies.get(SESSION_COOKIE)
+    user  = validate_session(token) if token else None
+
+    if user is None:
+        if path.startswith("/api/") or path.startswith("/admin/api/"):
+            return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+        redirect_to = f"/auth/login?next={path}"
+        return RedirectResponse(url=redirect_to, status_code=302)
+
+    # Attach user to request state for downstream routes
+    request.state.user = user
+    return await call_next(request)
 
 # In-memory manager store — keyed by conversation_id.
 # Avoids a DB round-trip to reconstruct history on every turn.
@@ -227,12 +271,13 @@ async def serve_index():
 
 
 @app.post("/api/start")
-async def start_conversation():
+async def start_conversation(request: Request):
     """
-    Creates a new conversation and returns the conversation_id.
-    Called once when the user loads the chat page.
+    Creates a new conversation linked to the logged-in user.
+    Returns the conversation_id and opening LLM message.
     """
-    conversation_id = create_conversation()
+    user_id = getattr(request.state, "user", {}).get("id")
+    conversation_id = create_conversation_for_user(user_id)
     manager = ConversationManager(conversation_id)
     _managers[conversation_id] = manager
 
