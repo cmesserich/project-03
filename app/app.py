@@ -66,6 +66,35 @@ templates = Jinja2Templates(
 
 _PUBLIC_PATHS = {"/auth/login", "/auth/register", "/api/webhooks/stripe"}
 
+
+# ─────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────
+
+def _build_city_card(d: dict) -> dict:
+    """Builds a serializable city_card dict from a get_city_detail result.
+    Parent scores are computed from sub-subindices (same method as score_cities)
+    because the aggregate DB columns are not reliably populated."""
+    def _f(v):
+        return float(v) if v is not None else None
+    geo_id = d.get("geo_id")
+    scores = get_city_parent_scores(geo_id) if geo_id else {}
+    return {
+        "geo_id":                  geo_id,
+        "name":                    d.get("name"),
+        "state":                   d.get("state"),
+        "population":              _f(d.get("population")),
+        "median_household_income": _f(d.get("median_household_income")),
+        "median_gross_rent":       _f(d.get("median_gross_rent")),
+        "median_home_value":       _f(d.get("median_home_value")),
+        "avg_aqi":                 _f(d.get("avg_aqi")),
+        "econ_score":              scores.get("econ"),
+        "lifestyle_score":         scores.get("lifestyle"),
+        "community_score":         scores.get("community"),
+        "mobility_score":          scores.get("mobility"),
+        "health_score":            scores.get("health"),
+    }
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
@@ -358,30 +387,6 @@ async def chat(request: ChatRequest):
 
     city_card = None
 
-    def _build_city_card(d: dict) -> dict:
-        """Builds a serializable city_card dict from a get_city_detail result.
-        Parent scores are computed from sub-subindices (same method as score_cities)
-        because the aggregate DB columns are not reliably populated."""
-        def _f(v):
-            return float(v) if v is not None else None
-        geo_id = d.get("geo_id")
-        scores = get_city_parent_scores(geo_id) if geo_id else {}
-        return {
-            "geo_id":                  geo_id,
-            "name":                    d.get("name"),
-            "state":                   d.get("state"),
-            "population":              _f(d.get("population")),
-            "median_household_income": _f(d.get("median_household_income")),
-            "median_gross_rent":       _f(d.get("median_gross_rent")),
-            "median_home_value":       _f(d.get("median_home_value")),
-            "avg_aqi":                 _f(d.get("avg_aqi")),
-            "econ_score":              scores.get("econ"),
-            "lifestyle_score":         scores.get("lifestyle"),
-            "community_score":         scores.get("community"),
-            "mobility_score":          scores.get("mobility"),
-            "health_score":            scores.get("health"),
-        }
-
     if tool_results:
         query_ran = "query_cities" in tool_results and tool_results["query_cities"]["success"]
         if query_ran:
@@ -449,6 +454,14 @@ async def chat(request: ChatRequest):
             "sub_scores": {},
         }
         suggested_cities = [queried] + similar
+
+        # Persist so the panel survives page reload / Stripe return
+        save_results(
+            conversation_id=manager.conversation_id,
+            derived_weights={},
+            top_cities=suggested_cities,
+            query_number=1,
+        )
 
     # 6. Close conversation if at limit
     at_limit = manager.at_turn_limit() or manager.at_query_limit()
@@ -694,6 +707,18 @@ async def get_city(cbsa_code: str):
         "state": detail.get("state"),
         "stats": stats,
     })
+
+
+@app.get("/api/city/{cbsa_code}/card")
+async def get_city_card_data(cbsa_code: str):
+    """
+    Returns the city_card JSON for a given CBSA code.
+    Used by the frontend to restore the city preview button after a page reload.
+    """
+    result = dispatch("get_city_detail", cbsa_code=cbsa_code)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail="City not found")
+    return JSONResponse(_build_city_card(result["detail"]))
 
 
 @app.get("/api/city/{cbsa_code}/map")

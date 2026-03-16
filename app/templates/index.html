@@ -1712,6 +1712,15 @@
       if (data.cities && data.cities.length > 0) {
         renderCities(data.cities);
         checkReportStatus(id);
+
+        // Restore the city preview button for the top city
+        const topGeoId = data.cities[0].geo_id;
+        if (topGeoId) {
+          fetch(`/api/city/${topGeoId}/card`)
+            .then(r => r.ok ? r.json() : null)
+            .then(card => { if (card) renderCityCard(card); })
+            .catch(() => {});
+        }
       }
 
       setWaiting(false);
