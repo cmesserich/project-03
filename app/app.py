@@ -363,20 +363,23 @@ async def chat(request: ChatRequest):
 
         if "get_city_detail" in tool_results and tool_results["get_city_detail"]["success"]:
             d = tool_results["get_city_detail"]["detail"]
+            def _f(v):
+                """Cast Decimal/numeric DB values to float for JSON serialization."""
+                return float(v) if v is not None else None
             city_card = {
                 "geo_id":                  d.get("geo_id"),
                 "name":                    d.get("name"),
                 "state":                   d.get("state"),
-                "population":              d.get("population"),
-                "median_household_income": d.get("median_household_income"),
-                "median_gross_rent":       d.get("median_gross_rent"),
-                "median_home_value":       d.get("median_home_value"),
-                "avg_aqi":                 d.get("avg_aqi"),
-                "econ_score":              d.get("econ_score"),
-                "lifestyle_score":         d.get("lifestyle_score"),
-                "community_score":         d.get("community_score"),
-                "mobility_score":          d.get("mobility_score"),
-                "health_score":            d.get("health_score"),
+                "population":              _f(d.get("population")),
+                "median_household_income": _f(d.get("median_household_income")),
+                "median_gross_rent":       _f(d.get("median_gross_rent")),
+                "median_home_value":       _f(d.get("median_home_value")),
+                "avg_aqi":                 _f(d.get("avg_aqi")),
+                "econ_score":              _f(d.get("econ_score")),
+                "lifestyle_score":         _f(d.get("lifestyle_score")),
+                "community_score":         _f(d.get("community_score")),
+                "mobility_score":          _f(d.get("mobility_score")),
+                "health_score":            _f(d.get("health_score")),
             }
 
         # 4. Feed tool results back to LLM for a follow-up response
