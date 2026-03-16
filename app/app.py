@@ -425,6 +425,37 @@ async def get_history(request: Request):
     return JSONResponse({"conversations": conversations})
 
 
+@app.get("/api/conversation/{conversation_id}")
+async def get_conversation_messages(conversation_id: str, request: Request):
+    """
+    Returns the visible message history and latest city results for a conversation.
+    Used by the frontend to reload a past conversation from history.
+    Filters out internal seed messages and tool context messages.
+    """
+    if not conversation_exists(conversation_id):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    from db import get_messages
+    raw_messages = get_messages(conversation_id)
+
+    visible = []
+    for m in raw_messages:
+        # Skip the seed "hello" that bootstraps the opening greeting
+        if m["role"] == "user" and m["content"].strip() == "hello":
+            continue
+        # Skip internal tool result messages injected back to the LLM
+        if m["content"].startswith("[TOOL RESULTS]"):
+            continue
+        visible.append({"role": m["role"], "content": m["content"]})
+
+    results = get_latest_results(conversation_id)
+
+    return JSONResponse({
+        "messages": visible,
+        "cities":   results["top_cities"] if results else None,
+    })
+
+
 @app.get("/api/results/{conversation_id}")
 async def get_results(conversation_id: str):
     """

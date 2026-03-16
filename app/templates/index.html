@@ -1253,24 +1253,67 @@
     }).join('');
   }
 
-  // ── Load a past conversation's results ───────
+  // ── Load a past conversation ─────────────────
   async function loadPastConversation(id) {
+    // Stop any running poll and reset CTA
+    if (reportPollTimer) { clearInterval(reportPollTimer); reportPollTimer = null; }
+    reportCta.style.display = 'none';
+    reportCta.innerHTML = '';
+
+    // Switch active conversation
+    conversationId = id;
+
+    // Clear panels
+    messagesEl.innerHTML = '';
+    resultsEl.innerHTML = `
+      <div class="empty-state" id="results-empty-state">
+        <div class="icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted); opacity: 0.5;">
+            <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.65 12a.5.5 0 0 0 .7 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+          </svg>
+        </div>
+        <p>Answer a few questions and we'll find your best matches</p>
+      </div>`;
+
+    // Close history panel
+    historyOpen = false;
+    document.getElementById('history-panel').classList.remove('open');
+    document.getElementById('history-btn').classList.remove('active');
+
     try {
-      const res = await fetch(`/api/results/${id}`);
+      const res = await fetch(`/api/conversation/${id}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      if (data.cities) renderCities(data.cities);
-      // Update active state
+
+      // Render messages
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(m => addMessage(m.role === 'assistant' ? 'assistant' : 'user', m.content));
+      }
+
+      // Render cities and check report status
+      if (data.cities && data.cities.length > 0) {
+        renderCities(data.cities);
+        checkReportStatus(id);
+      }
+
+      setWaiting(false);
+
+      // Update active highlight in history list
       document.querySelectorAll('.history-item').forEach(el => {
         el.classList.toggle('active', el.getAttribute('onclick').includes(id));
       });
     } catch (e) {
-      showToast('Could not load past results.');
+      showToast('Could not load conversation.');
     }
   }
 
   // ── Start a brand-new chat ───────────────────
   async function startNewChat() {
+    // Stop any running poll and reset CTA
+    if (reportPollTimer) { clearInterval(reportPollTimer); reportPollTimer = null; }
+    reportCta.style.display = 'none';
+    reportCta.innerHTML = '';
+
     // Close history panel
     historyOpen = false;
     document.getElementById('history-panel').classList.remove('open');
