@@ -5,4 +5,9 @@ services:
     network_mode: host   # container uses host network stack — real client IPs visible to app
     env_file:
       - .env
+    volumes:
+      - reports:/app/reports
     restart: unless-stopped
+
+volumes:
+  reports:

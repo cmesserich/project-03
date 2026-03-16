@@ -574,6 +574,126 @@ def get_user_conversations(user_id: str, limit: int = 30) -> list:
     } for r in rows]
 
 
+# ─────────────────────────────────────────────
+# PAID REPORTS
+# ─────────────────────────────────────────────
+
+def create_paid_report(
+    conversation_id: str,
+    user_id: Optional[str],
+    stripe_session_id: str,
+    amount_cents: int = 900,
+) -> str:
+    """Creates a pending paid_report row and returns the UUID."""
+    query = text("""
+        INSERT INTO app3.paid_reports
+            (conversation_id, user_id, stripe_session_id, amount_cents, status)
+        VALUES (:conversation_id, :user_id, :stripe_session_id, :amount_cents, 'pending')
+        RETURNING id
+    """)
+    with get_engine().begin() as conn:
+        result = conn.execute(query, {
+            "conversation_id": conversation_id,
+            "user_id":         user_id,
+            "stripe_session_id": stripe_session_id,
+            "amount_cents":    amount_cents,
+        })
+        return str(result.fetchone()[0])
+
+
+def get_paid_report_by_session(stripe_session_id: str) -> Optional[dict]:
+    with get_engine().connect() as conn:
+        row = conn.execute(text("""
+            SELECT id, conversation_id, user_id, status, pdf_path, pdf_generated_at, paid_at
+            FROM app3.paid_reports WHERE stripe_session_id = :sid
+        """), {"sid": stripe_session_id}).fetchone()
+    if row is None:
+        return None
+    return {
+        "id":              str(row.id),
+        "conversation_id": str(row.conversation_id),
+        "user_id":         str(row.user_id) if row.user_id else None,
+        "status":          row.status,
+        "pdf_path":        row.pdf_path,
+        "pdf_generated_at": row.pdf_generated_at.isoformat() if row.pdf_generated_at else None,
+        "paid_at":         row.paid_at.isoformat() if row.paid_at else None,
+    }
+
+
+def get_paid_report_by_conversation(conversation_id: str) -> Optional[dict]:
+    with get_engine().connect() as conn:
+        row = conn.execute(text("""
+            SELECT id, conversation_id, user_id, status, pdf_path,
+                   pdf_generated_at, paid_at, stripe_session_id
+            FROM app3.paid_reports
+            WHERE conversation_id = :cid
+            ORDER BY created_at DESC LIMIT 1
+        """), {"cid": conversation_id}).fetchone()
+    if row is None:
+        return None
+    return {
+        "id":               str(row.id),
+        "conversation_id":  str(row.conversation_id),
+        "user_id":          str(row.user_id) if row.user_id else None,
+        "status":           row.status,
+        "pdf_path":         row.pdf_path,
+        "pdf_generated_at": row.pdf_generated_at.isoformat() if row.pdf_generated_at else None,
+        "paid_at":          row.paid_at.isoformat() if row.paid_at else None,
+        "stripe_session_id": row.stripe_session_id,
+    }
+
+
+def get_paid_report(report_id: str) -> Optional[dict]:
+    with get_engine().connect() as conn:
+        row = conn.execute(text("""
+            SELECT id, conversation_id, user_id, status, pdf_path, pdf_generated_at, paid_at
+            FROM app3.paid_reports WHERE id = :id
+        """), {"id": report_id}).fetchone()
+    if row is None:
+        return None
+    return {
+        "id":               str(row.id),
+        "conversation_id":  str(row.conversation_id),
+        "user_id":          str(row.user_id) if row.user_id else None,
+        "status":           row.status,
+        "pdf_path":         row.pdf_path,
+        "pdf_generated_at": row.pdf_generated_at.isoformat() if row.pdf_generated_at else None,
+        "paid_at":          row.paid_at.isoformat() if row.paid_at else None,
+    }
+
+
+def mark_report_paid(stripe_session_id: str, payment_intent: str) -> Optional[str]:
+    """Transition pending → generating after Stripe confirms payment. Returns report_id."""
+    with get_engine().begin() as conn:
+        result = conn.execute(text("""
+            UPDATE app3.paid_reports
+            SET status = 'generating',
+                paid_at = NOW(),
+                stripe_payment_intent = :payment_intent
+            WHERE stripe_session_id = :sid
+              AND status = 'pending'
+            RETURNING id
+        """), {"sid": stripe_session_id, "payment_intent": payment_intent})
+        row = result.fetchone()
+        return str(row[0]) if row else None
+
+
+def mark_report_ready(report_id: str, pdf_path: str) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.paid_reports
+            SET status = 'ready', pdf_path = :path, pdf_generated_at = NOW()
+            WHERE id = :id
+        """), {"id": report_id, "path": pdf_path})
+
+
+def mark_report_failed(report_id: str) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE app3.paid_reports SET status = 'failed' WHERE id = :id
+        """), {"id": report_id})
+
+
 def create_conversation_for_user(user_id: Optional[str] = None) -> str:
     """
     Creates a new conversation row linked to a user (if provided).

@@ -21,8 +21,8 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from auth import hash_password, require_admin
@@ -231,10 +231,34 @@ async def admin_conversation_detail(
 ):
     detail = get_conversation_detail(conversation_id)
     if not detail:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Conversation not found")
     return templates.TemplateResponse("admin/conversation_detail.html", {
         "request": request,
         "admin":   admin,
         "c":       detail,
     })
+
+
+@router.get("/reports/preview/{conversation_id}")
+async def admin_report_preview(
+    conversation_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    """
+    Generates and streams a PDF report for any conversation — no payment required.
+    Use this to preview and test report output before going live with Stripe.
+    """
+    from report import generate_report_bytes
+    try:
+        pdf_bytes = generate_report_bytes(conversation_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    short_id = conversation_id[:8]
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="touchgrass-preview-{short_id}.pdf"'
+        },
+    )

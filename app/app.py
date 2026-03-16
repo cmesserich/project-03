@@ -43,12 +43,14 @@ from db import (
 from auth import SESSION_COOKIE, validate_session
 from routers.auth_routes import router as auth_router
 from routers.admin_routes import router as admin_router
+from routers.report_routes import router as report_router
 
 load_dotenv()
 
 app = FastAPI(title="Touchgrass Project 03")
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(report_router)
 
 templates = Jinja2Templates(
     directory=str(Path(__file__).parent / "templates")
@@ -61,7 +63,7 @@ templates = Jinja2Templates(
 # API requests  → 401 JSON
 # ─────────────────────────────────────────────
 
-_PUBLIC_PATHS = {"/auth/login", "/auth/register"}
+_PUBLIC_PATHS = {"/auth/login", "/auth/register", "/api/webhooks/stripe"}
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Touchgrass Relocation Report — {{ username }}</title>
+<style>
+/* ── Page setup ── */
+@page {
+  size: letter;
+  margin: 0.7in 0.8in 0.8in 0.8in;
+  @bottom-right {
+    content: counter(page);
+    font-size: 8pt;
+    color: #b0a898;
+    font-family: Georgia, serif;
+  }
+}
+@page :first { @bottom-right { content: ""; } }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 10.5pt;
+  line-height: 1.6;
+  color: #2c2416;
+  background: #fffef9;
+}
+
+/* ── Utilities ── */
+.page-break { page-break-before: always; }
+.mono { font-family: 'Courier New', Courier, monospace; }
+
+/* ── Cover ── */
+.cover {
+  min-height: 9.6in;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.4in 0 0.2in;
+}
+
+.cover-brand {
+  font-family: Georgia, serif;
+  font-size: 10pt;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #9a845a;
+}
+
+.cover-rule {
+  width: 48px;
+  height: 2px;
+  background: #C8B89A;
+  margin: 0.3in 0 0.25in;
+}
+
+.cover-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34pt;
+  font-weight: normal;
+  color: #1e1a12;
+  line-height: 1.15;
+}
+
+.cover-subtitle {
+  font-size: 12pt;
+  color: #7a6e5a;
+  margin-top: 0.2in;
+  font-style: italic;
+}
+
+.cover-city-block {
+  background: #f5f0e8;
+  border-left: 4px solid #C8B89A;
+  padding: 0.2in 0.3in;
+  margin-top: 0.6in;
+}
+
+.cover-city-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9a845a;
+  margin-bottom: 0.08in;
+}
+
+.cover-city-name {
+  font-family: Georgia, serif;
+  font-size: 24pt;
+  font-weight: normal;
+  color: #1e1a12;
+}
+
+.cover-city-score {
+  font-size: 10pt;
+  color: #7a6e5a;
+  margin-top: 0.05in;
+}
+
+.cover-meta {
+  font-size: 9pt;
+  color: #9a845a;
+  border-top: 1px solid #e8e0d0;
+  padding-top: 0.15in;
+  font-style: italic;
+}
+
+/* ── Section headers ── */
+.section-header {
+  font-family: Georgia, serif;
+  font-size: 20pt;
+  font-weight: normal;
+  color: #1e1a12;
+  padding-bottom: 0.1in;
+  border-bottom: 2px solid #C8B89A;
+  margin-bottom: 0.1in;
+}
+
+.section-sub {
+  font-size: 9pt;
+  color: #7a6e5a;
+  margin-bottom: 0.25in;
+  font-style: italic;
+}
+
+/* ── Priorities ── */
+.priority-group {
+  margin-bottom: 0.22in;
+}
+
+.priority-group-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #9a845a;
+  margin-bottom: 0.1in;
+  font-style: normal;
+}
+
+.priority-row {
+  display: flex;
+  align-items: center;
+  gap: 0.1in;
+  margin-bottom: 0.055in;
+}
+
+.priority-label {
+  width: 1.85in;
+  font-size: 9pt;
+  color: #3a3020;
+  flex-shrink: 0;
+  font-family: Georgia, serif;
+}
+
+.priority-bar-bg {
+  flex: 1;
+  height: 7px;
+  background: #ede8df;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.priority-bar-fill {
+  height: 7px;
+  background: #C8B89A;
+  border-radius: 4px;
+}
+
+.priority-pct {
+  width: 0.42in;
+  font-size: 8pt;
+  color: #9a845a;
+  text-align: right;
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Signals box ── */
+.signals-box {
+  margin-top: 0.3in;
+  padding: 0.15in 0.2in;
+  background: #f5f0e8;
+  border-radius: 4px;
+}
+
+.signals-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #9a845a;
+  margin-bottom: 0.1in;
+}
+
+.signals-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.08in;
+}
+
+.signal-pill {
+  font-size: 8.5pt;
+  color: #3a3020;
+  background: #ede8df;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* ── Rankings table ── */
+.rankings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-top: 0.1in;
+}
+
+.rankings-table th {
+  background: #f5f0e8;
+  padding: 0.08in 0.1in;
+  text-align: left;
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9a845a;
+  border-bottom: 1px solid #ddd8ce;
+}
+
+.rankings-table td {
+  padding: 0.065in 0.1in;
+  border-bottom: 1px solid #f0ece4;
+  color: #2c2416;
+  font-family: Georgia, serif;
+}
+
+.rankings-table tr:last-child td { border-bottom: none; }
+.rankings-table tr:nth-child(even) td { background: #faf8f4; }
+
+.rank-num {
+  font-family: 'Courier New', monospace;
+  font-size: 8pt;
+  color: #b0a898;
+  width: 0.25in;
+  text-align: right;
+}
+
+.score-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 10.5pt;
+  color: #7a5c30;
+  font-weight: bold;
+}
+
+.sub-score-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 8.5pt;
+  color: #6a5a42;
+  text-align: center;
+}
+
+/* ── City deep-dive ── */
+.city-divider {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 2px solid #C8B89A;
+  padding-bottom: 0.1in;
+  margin-bottom: 0.22in;
+}
+
+.city-name-large {
+  font-family: Georgia, serif;
+  font-size: 22pt;
+  font-weight: normal;
+  color: #1e1a12;
+}
+
+.city-state-line {
+  font-family: 'Courier New', monospace;
+  font-size: 8pt;
+  color: #9a845a;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.city-rank-block {
+  text-align: right;
+}
+
+.city-rank-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  color: #b0a898;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.city-score-display {
+  font-family: 'Courier New', monospace;
+  font-size: 20pt;
+  color: #7a5c30;
+  font-weight: bold;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.city-score-denom {
+  font-size: 9pt;
+  color: #b0a898;
+}
+
+.city-layout {
+  display: flex;
+  gap: 0.25in;
+  margin-bottom: 0.22in;
+}
+
+.city-map-col {
+  width: 2.7in;
+  flex-shrink: 0;
+}
+
+.city-map-img {
+  width: 100%;
+  border-radius: 4px;
+  border: 1px solid #e8e0d0;
+}
+
+.city-map-caption {
+  font-size: 7pt;
+  color: #b0a898;
+  text-align: center;
+  margin-top: 3px;
+  font-style: italic;
+}
+
+.city-map-placeholder {
+  width: 100%;
+  height: 1.8in;
+  background: #f5f0e8;
+  border-radius: 4px;
+  border: 1px solid #e8e0d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0a898;
+  font-size: 8pt;
+  font-style: italic;
+}
+
+.city-stats-col { flex: 1; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.06in 0.2in;
+}
+
+.stat-item {
+  padding: 0.055in 0;
+  border-bottom: 1px solid #f0ece4;
+}
+
+.stat-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9a845a;
+  margin-bottom: 1px;
+}
+
+.stat-value {
+  font-family: Georgia, serif;
+  font-size: 10pt;
+  color: #1e1a12;
+}
+
+/* ── Score breakdown bars ── */
+.score-breakdown {
+  margin-top: 0.18in;
+}
+
+.breakdown-label {
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #9a845a;
+  margin-bottom: 0.1in;
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 0.1in;
+  margin-bottom: 0.05in;
+}
+
+.breakdown-name {
+  width: 1.5in;
+  font-family: Georgia, serif;
+  font-size: 8.5pt;
+  color: #3a3020;
+  flex-shrink: 0;
+}
+
+.breakdown-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #ede8df;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.breakdown-bar-fill {
+  height: 6px;
+  background: #5a8c6a;
+  border-radius: 3px;
+}
+
+.breakdown-val {
+  width: 0.35in;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  font-size: 8pt;
+  color: #9a845a;
+  flex-shrink: 0;
+}
+
+/* ── Comparison matrix ── */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+}
+
+.comparison-table th {
+  background: #f5f0e8;
+  padding: 0.07in 0.08in;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  font-size: 7.5pt;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9a845a;
+  border: 1px solid #ddd8ce;
+}
+
+.comparison-table th.lh { text-align: left; }
+
+.comparison-table td {
+  padding: 0.06in 0.08in;
+  border: 1px solid #ece8e0;
+  text-align: center;
+  color: #2c2416;
+  font-family: Georgia, serif;
+}
+
+.comparison-table td.lh {
+  text-align: left;
+  font-weight: normal;
+  background: #faf8f4;
+  color: #3a3020;
+}
+
+.comparison-table tr:nth-child(even) td { background: #faf8f4; }
+.comparison-table tr:nth-child(even) td.lh { background: #f5f0e8; }
+
+/* ── Methodology ── */
+.methodology {
+  margin-top: 0.35in;
+  padding: 0.15in 0.2in;
+  background: #f5f0e8;
+  border-radius: 4px;
+  font-size: 8pt;
+  color: #7a6e5a;
+  line-height: 1.55;
+}
+
+.methodology strong { color: #3a3020; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ COVER ═══════════════════════════════════════ -->
+<div class="cover">
+  <div>
+    <div class="cover-brand">Touchgrass</div>
+    <div class="cover-rule"></div>
+    <div class="cover-title">Your Personalized<br>Relocation Report</div>
+    <div class="cover-subtitle">Based on your conversation priorities</div>
+  </div>
+
+  {% if cities %}
+  <div class="cover-city-block">
+    <div class="cover-city-label">Your #1 Match</div>
+    <div class="cover-city-name">{{ cities[0].name }}</div>
+    <div class="cover-city-score">Personalized Score: {{ cities[0].score }} / 100</div>
+  </div>
+  {% endif %}
+
+  <div class="cover-meta">
+    Prepared for <em>{{ username }}</em> &nbsp;&middot;&nbsp; {{ generated_at }}
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════ PRIORITIES ══════════════════════════════════ -->
+<div class="page-break">
+  <div class="section-header">Your Priorities</div>
+  <p class="section-sub">Derived from your conversation. Wider bars indicate factors you emphasized more.</p>
+
+  {% for parent_key, items in weight_groups.items() %}
+  <div class="priority-group">
+    <div class="priority-group-label">{{ parent_labels.get(parent_key, parent_key) }}</div>
+    {% for item in items %}
+    <div class="priority-row">
+      <div class="priority-label">{{ item.label }}</div>
+      <div class="priority-bar-bg">
+        <div class="priority-bar-fill" style="width: {{ item.bar_width }}%"></div>
+      </div>
+      <div class="priority-pct">{{ item.pct }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  {% if signals %}
+  <div class="signals-box">
+    <div class="signals-label">Conversation Signals</div>
+    <div class="signals-pills">
+      {% if signals.remote_work %}<span class="signal-pill">Remote work</span>{% endif %}
+      {% if signals.has_kids %}<span class="signal-pill">Has kids</span>{% endif %}
+      {% if signals.budget_mentioned %}<span class="signal-pill">Budget-conscious</span>{% endif %}
+      {% for city in signals.named_cities %}<span class="signal-pill">Mentioned: {{ city }}</span>{% endfor %}
+      {% for state in signals.named_states %}<span class="signal-pill">Interest: {{ state }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════ RANKINGS ════════════════════════════════════ -->
+<div class="page-break">
+  <div class="section-header">Your Top {{ top_cities_summary | length }} Cities</div>
+  <p class="section-sub">Ranked by your personalized score across all 50 metros in the dataset.</p>
+
+  <table class="rankings-table">
+    <thead>
+      <tr>
+        <th class="rank-num">#</th>
+        <th>City</th>
+        <th>Score</th>
+        <th>Economic</th>
+        <th>Lifestyle</th>
+        <th>Community</th>
+        <th>Mobility</th>
+        <th>Health</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for city in top_cities_summary %}
+      <tr>
+        <td class="rank-num">{{ city.rank }}</td>
+        <td><strong>{{ city.name }}</strong></td>
+        <td class="score-cell">{{ "%.1f"|format(city.personalized_score) }}</td>
+        {% if city.parent_scores %}
+        <td class="sub-score-cell">{{ "%.0f"|format(city.parent_scores.get('econ', 0)) }}</td>
+        <td class="sub-score-cell">{{ "%.0f"|format(city.parent_scores.get('lifestyle', 0)) }}</td>
+        <td class="sub-score-cell">{{ "%.0f"|format(city.parent_scores.get('community', 0)) }}</td>
+        <td class="sub-score-cell">{{ "%.0f"|format(city.parent_scores.get('mobility', 0)) }}</td>
+        <td class="sub-score-cell">{{ "%.0f"|format(city.parent_scores.get('health', 0)) }}</td>
+        {% else %}
+        <td class="sub-score-cell">—</td><td class="sub-score-cell">—</td>
+        <td class="sub-score-cell">—</td><td class="sub-score-cell">—</td>
+        <td class="sub-score-cell">—</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════ CITY DEEP-DIVES ═════════════════════════════ -->
+{% for city in cities %}
+<div class="page-break">
+
+  <div class="city-divider">
+    <div>
+      <div class="city-name-large">{{ city.name }}</div>
+      <div class="city-state-line">Metro area</div>
+    </div>
+    <div class="city-rank-block">
+      <div class="city-rank-label">Rank {{ city.rank }} · Score</div>
+      <div>
+        <span class="city-score-display">{{ city.score }}</span>
+        <span class="city-score-denom"> / 100</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="city-layout">
+    <!-- Map -->
+    <div class="city-map-col">
+      {% if city.map_png %}
+      <img class="city-map-img" src="data:image/png;base64,{{ city.map_png }}" alt="{{ city.name }} metro boundary">
+      {% else %}
+      <div class="city-map-placeholder">Boundary unavailable</div>
+      {% endif %}
+      <div class="city-map-caption">{{ city.name }} Metro Statistical Area</div>
+    </div>
+
+    <!-- Key stats -->
+    <div class="city-stats-col">
+      {% set d = city.detail %}
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Population</div>
+          <div class="stat-value">{% if d.population %}{{ "{:,}".format(d.population | int) }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Median Household Income</div>
+          <div class="stat-value">{% if d.median_household_income %}${{ "{:,}".format(d.median_household_income | int) }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Median Gross Rent</div>
+          <div class="stat-value">{% if d.median_gross_rent %}${{ "{:,}".format(d.median_gross_rent | int) }}/mo{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Median Home Value</div>
+          <div class="stat-value">{% if d.median_home_value %}${{ "{:,}".format(d.median_home_value | int) }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Avg Commute Time</div>
+          <div class="stat-value">{% if d.avg_commute_time_min %}{{ "%.0f"|format(d.avg_commute_time_min | float) }} min{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Air Quality (AQI)</div>
+          <div class="stat-value">{% if d.avg_aqi %}{{ "%.1f"|format(d.avg_aqi | float) }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Health Insurance Coverage</div>
+          <div class="stat-value">{% if d.health_insurance_coverage %}{{ "%.1f"|format(d.health_insurance_coverage | float) }}%{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Bachelor's Degree +</div>
+          <div class="stat-value">{% if d.pct_bachelors_or_higher %}{{ "%.1f"|format(d.pct_bachelors_or_higher | float) }}%{% else %}—{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score breakdown -->
+  {% if city.parent_scores %}
+  <div class="score-breakdown">
+    <div class="breakdown-label">Score Breakdown</div>
+    {% for parent_key, parent_label in parent_labels.items() %}
+    {% set score = city.parent_scores.get(parent_key, 0) %}
+    <div class="breakdown-row">
+      <div class="breakdown-name">{{ parent_label }}</div>
+      <div class="breakdown-bar-bg">
+        <div class="breakdown-bar-fill" style="width: {{ score }}%"></div>
+      </div>
+      <div class="breakdown-val">{{ "%.0f"|format(score) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endfor %}
+
+
+<!-- ═══════════════════════════════════════ COMPARISON ══════════════════════════════════ -->
+{% if cities | length > 1 %}
+<div class="page-break">
+  <div class="section-header">City Comparison</div>
+  <p class="section-sub">Side-by-side view of your top {{ cities | length }} cities.</p>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th class="lh" style="width: 1.6in;">Metric</th>
+        {% for city in cities %}
+        <th>{{ city.name.split(',')[0] }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="lh">Personalized Score</td>
+        {% for city in cities %}<td><strong>{{ city.score }}</strong></td>{% endfor %}
+      </tr>
+      <tr>
+        <td class="lh">Population</td>
+        {% for city in cities %}
+        <td>{% if city.detail.population %}{{ "{:,}".format(city.detail.population | int) }}{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td class="lh">Median Income</td>
+        {% for city in cities %}
+        <td>{% if city.detail.median_household_income %}${{ "{:,}".format(city.detail.median_household_income | int) }}{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td class="lh">Median Rent/mo</td>
+        {% for city in cities %}
+        <td>{% if city.detail.median_gross_rent %}${{ "{:,}".format(city.detail.median_gross_rent | int) }}{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td class="lh">Median Home Value</td>
+        {% for city in cities %}
+        <td>{% if city.detail.median_home_value %}${{ "{:,}".format(city.detail.median_home_value | int) }}{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td class="lh">Avg Commute</td>
+        {% for city in cities %}
+        <td>{% if city.detail.avg_commute_time_min %}{{ "%.0f"|format(city.detail.avg_commute_time_min | float) }} min{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <td class="lh">Air Quality (AQI)</td>
+        {% for city in cities %}
+        <td>{% if city.detail.avg_aqi %}{{ "%.1f"|format(city.detail.avg_aqi | float) }}{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      {% for parent_key, parent_label in parent_labels.items() %}
+      <tr>
+        <td class="lh">{{ parent_label }}</td>
+        {% for city in cities %}
+        <td>{% if city.parent_scores %}{{ "%.0f"|format(city.parent_scores.get(parent_key, 0)) }}{% else %}—{% endif %}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="methodology">
+    <strong>About This Report</strong><br>
+    Scores are derived from a weighted combination of 16 sub-indices across 50 US metro areas. Your
+    weight vector was inferred from your Touchgrass conversation — factors you emphasized more received
+    higher weights. All scores are normalized to 0–100 within the full dataset, so 100 represents the
+    best-performing city for your specific priorities. Data sources include the US Census Bureau (ACS 5-Year
+    Estimates), EPA air quality monitoring, and OpenStreetMap POI density.
+  </div>
+</div>
+{% endif %}
+
+</body>
+</html>
