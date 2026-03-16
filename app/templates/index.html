@@ -1126,7 +1126,7 @@
         ${stateLabel ? `<span class="ccc-city-state">${stateLabel}</span>` : ''}
       </div>
       <div class="ccc-map">
-        <img src="/api/city/${card.geo_id}/map" alt="Metro map" loading="lazy"
+        <img src="/api/city/${card.geo_id}/map" alt="Metro map"
              onerror="this.style.display='none';this.parentElement.style.background='var(--sand-light)'" />
       </div>
       <div class="ccc-stats-grid">
@@ -1153,8 +1153,8 @@
       </div>`;
 
     messagesEl.appendChild(el);
-    // Delay scroll so the card's aspect-ratio placeholder has height
-    requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom()));
+    // scrollIntoView is more reliable than scrollTop when smooth-scroll is active
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   }
 
   async function triggerReportPurchase() {
