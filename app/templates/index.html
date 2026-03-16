@@ -84,6 +84,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
+      margin-right: 12px;
       background: none;
       border: 1px solid var(--sand);
       border-radius: var(--radius);
@@ -1004,10 +1005,10 @@
 <div class="layout">
 
   <header>
+    <button class="history-btn" id="history-btn" onclick="toggleHistory()">&#9776; History</button>
     <a class="wordmark" href="/">Touchgrass</a>
     <span class="header-tag">City Match</span>
     <div class="header-right">
-      <button class="history-btn" id="history-btn" onclick="toggleHistory()">&#9776; History</button>
       <span class="user-badge" id="user-badge"></span>
       <form method="POST" action="/auth/logout" style="display:inline">
         <button class="logout-btn" type="submit">Sign out</button>
@@ -1566,8 +1567,18 @@
 
   sendBtn.addEventListener('click', sendMessage);
 
-  // ── ESC closes city modal ────────────────────
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCityModal(); });
+  // ── ESC closes city modal / history panel ────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeCityModal(); if (historyOpen) toggleHistory(); }
+  });
+
+  // ── Click outside history panel to close ─────
+  document.addEventListener('click', e => {
+    if (!historyOpen) return;
+    const panel = document.getElementById('history-panel');
+    const btn   = document.getElementById('history-btn');
+    if (!panel.contains(e.target) && !btn.contains(e.target)) toggleHistory();
+  });
 
 
   // ── Start conversation on load ──────────────
