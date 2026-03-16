@@ -553,7 +553,7 @@ def get_user_conversations(user_id: str, limit: int = 30) -> list:
             SELECT c.id, c.created_at, c.turn_count, c.query_count, c.completed,
                    cr.top_cities
             FROM app3.conversations c
-            LEFT JOIN LATERAL (
+            JOIN LATERAL (
                 SELECT top_cities
                 FROM app3.conversation_results
                 WHERE conversation_id = c.id
