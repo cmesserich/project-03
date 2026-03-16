@@ -33,7 +33,7 @@ from dotenv import load_dotenv
 
 from conversation import ConversationManager, load_from_db, persist_message
 from tools import dispatch
-from score_engine import get_similar_cities
+from score_engine import get_similar_cities, get_city_parent_scores
 from logger import log_conversation_close
 from system_prompt import SYSTEM_PROMPT
 from db import (
@@ -360,14 +360,14 @@ async def chat(request: ChatRequest):
 
     def _build_city_card(d: dict) -> dict:
         """Builds a serializable city_card dict from a get_city_detail result.
-        Scores are stored as 0-1 in the DB; multiply by 100 for display."""
+        Parent scores are computed from sub-subindices (same method as score_cities)
+        because the aggregate DB columns are not reliably populated."""
         def _f(v):
             return float(v) if v is not None else None
-        def _s(v):
-            # 0-1 → 0-100 for score bars
-            return round(float(v) * 100, 1) if v is not None else None
+        geo_id = d.get("geo_id")
+        scores = get_city_parent_scores(geo_id) if geo_id else {}
         return {
-            "geo_id":                  d.get("geo_id"),
+            "geo_id":                  geo_id,
             "name":                    d.get("name"),
             "state":                   d.get("state"),
             "population":              _f(d.get("population")),
@@ -375,11 +375,11 @@ async def chat(request: ChatRequest):
             "median_gross_rent":       _f(d.get("median_gross_rent")),
             "median_home_value":       _f(d.get("median_home_value")),
             "avg_aqi":                 _f(d.get("avg_aqi")),
-            "econ_score":              _s(d.get("econ_score")),
-            "lifestyle_score":         _s(d.get("lifestyle_score")),
-            "community_score":         _s(d.get("community_score")),
-            "mobility_score":          _s(d.get("mobility_score")),
-            "health_score":            _s(d.get("health_score")),
+            "econ_score":              scores.get("econ"),
+            "lifestyle_score":         scores.get("lifestyle"),
+            "community_score":         scores.get("community"),
+            "mobility_score":          scores.get("mobility"),
+            "health_score":            scores.get("health"),
         }
 
     if tool_results:
@@ -426,9 +426,11 @@ async def chat(request: ChatRequest):
             if fb["success"]:
                 city_card = _build_city_card(fb["detail"])
 
-    # 5c. If a city card exists but no ranked results yet, populate the
-    #     results panel with the queried city + 4 similar metros so the
-    #     report CTA is accessible on direct city inquiries.
+    # 5c. If a city card exists but no ranked results this turn, build a
+    #     "suggested" list (queried city + 4 similar metros) returned under
+    #     a separate key so the frontend only shows it when the panel is
+    #     empty — existing ranked results are never overwritten.
+    suggested_cities = None
     if city_card and city_card.get("geo_id") and not cities:
         similar = get_similar_cities(city_card["geo_id"], limit=4)
         queried = {
@@ -446,8 +448,7 @@ async def chat(request: ChatRequest):
             },
             "sub_scores": {},
         }
-        cities = [queried] + similar
-        query_ran = True
+        suggested_cities = [queried] + similar
 
     # 6. Close conversation if at limit
     at_limit = manager.at_turn_limit() or manager.at_query_limit()
@@ -455,13 +456,14 @@ async def chat(request: ChatRequest):
         log_conversation_close(manager)
 
     return JSONResponse({
-        "message":         manager.get_latest_clean_response(),
-        "cities":          cities,
-        "city_card":       city_card,
-        "query_ran":       query_ran,
-        "turn":            manager.turn,
-        "at_limit":        at_limit,
-        "conversation_id": request.conversation_id,
+        "message":           manager.get_latest_clean_response(),
+        "cities":            cities,
+        "suggested_cities":  suggested_cities,
+        "city_card":         city_card,
+        "query_ran":         query_ran,
+        "turn":              manager.turn,
+        "at_limit":          at_limit,
+        "conversation_id":   request.conversation_id,
     })
 
 
@@ -701,11 +703,17 @@ async def get_city_map_image(cbsa_code: str):
     Used by the in-chat city card to render the map inline.
     """
     import base64
-    from report import _generate_city_map
-    png_b64 = _generate_city_map(cbsa_code)
-    if not png_b64:
-        raise HTTPException(status_code=404, detail="Map not available for this city")
-    return Response(content=base64.b64decode(png_b64), media_type="image/png")
+    try:
+        from report import _generate_city_map
+        png_b64 = _generate_city_map(cbsa_code)
+        if not png_b64:
+            raise HTTPException(status_code=404, detail="Map not available for this city")
+        return Response(content=base64.b64decode(png_b64), media_type="image/png")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"[map] Failed to generate map for {cbsa_code}: {exc}")
+        raise HTTPException(status_code=500, detail=f"Map generation failed: {exc}")
 
 
 # ─────────────────────────────────────────────

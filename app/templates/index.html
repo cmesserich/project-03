@@ -1114,15 +1114,19 @@
         <span class="ccc-score-val">${s.val}</span>
       </div>`).join('');
 
+    // Avoid "Denver, CO CO" — only show state tag if not already in name
+    const stateLabel = (card.state && card.name && card.name.includes(card.state)) ? '' : (card.state || '');
+
     const el = document.createElement('div');
     el.className = 'chat-city-card';
     el.innerHTML = `
       <div class="ccc-header">
         <span class="ccc-city-name">${card.name}</span>
-        <span class="ccc-city-state">${card.state}</span>
+        ${stateLabel ? `<span class="ccc-city-state">${stateLabel}</span>` : ''}
       </div>
       <div class="ccc-map">
-        <img src="/api/city/${card.geo_id}/map" alt="${card.name} metro map" loading="lazy" />
+        <img src="/api/city/${card.geo_id}/map" alt="Metro map" loading="lazy"
+             onerror="this.style.display='none';this.parentElement.style.background='var(--sand-light)'" />
       </div>
       <div class="ccc-stats-grid">
         <div class="ccc-stat">
@@ -1422,6 +1426,10 @@
 
       if (data.cities) {
         renderCities(data.cities);
+        checkReportStatus(conversationId);
+      } else if (data.suggested_cities && resultsEl.querySelectorAll('.city-card').length === 0) {
+        // Only show suggested cities when the panel has no ranked results yet
+        renderCities(data.suggested_cities);
         checkReportStatus(conversationId);
       }
 

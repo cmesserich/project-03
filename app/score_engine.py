@@ -290,6 +290,26 @@ def score_cities(weights: dict, filters: dict = None, limit: int = 10) -> list:
     return results
 
 
+def get_city_parent_scores(cbsa_code: str) -> dict:
+    """
+    Returns the 5 parent dimension scores (0-100) for a single city,
+    computed from sub-subindex values the same way score_cities() does.
+    Used to populate the city card score bars reliably.
+    """
+    df = fetch_city_data()
+    row = df[df["geo_id"] == cbsa_code]
+    if row.empty:
+        return {}
+    row = row.iloc[0]
+    result = {}
+    for parent in ["econ", "lifestyle", "community", "mobility", "health"]:
+        children = [k for k, v in PARENT_MAP.items() if v == parent]
+        result[parent] = round(
+            sum(float(row[c]) for c in children) / len(children) * 100, 1
+        )
+    return result
+
+
 def get_similar_cities(cbsa_code: str, limit: int = 4) -> list:
     """
     Returns the most similar cities to a given city, measured by
