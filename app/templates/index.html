@@ -300,6 +300,27 @@
       border-bottom-right-radius: 2px;
     }
 
+    /* Markdown rendering inside assistant bubbles */
+    .msg-bubble p { margin: 0 0 8px; }
+    .msg-bubble p:last-child { margin-bottom: 0; }
+    .msg-bubble .msg-spacer { height: 4px; }
+    .msg-bubble .msg-category {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--terracotta);
+      margin: 10px 0 4px;
+    }
+    .msg-bubble .msg-list {
+      margin: 4px 0 8px 16px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .msg-bubble .msg-list li { line-height: 1.5; }
+
     /* ── Typing indicator ────────────────────── */
 
     .typing {
@@ -650,12 +671,15 @@
 
     .ccc-map {
       width: 100%;
+      aspect-ratio: 5 / 3.5;
       background: #f9f7f4;
       line-height: 0;
+      overflow: hidden;
     }
 
     .ccc-map img {
       width: 100%;
+      height: 100%;
       display: block;
       object-fit: cover;
     }
@@ -992,6 +1016,41 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  // ── Markdown → safe HTML (for assistant messages) ───────────
+  function formatMessageHtml(raw) {
+    // Escape HTML to prevent XSS
+    const esc = raw
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const lines = esc.split('\n');
+    let html = '';
+    let inList = false;
+
+    for (const line of lines) {
+      const t = line.trim();
+      const inlineFmt = s => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+      if (t.startsWith('- ')) {
+        if (!inList) { html += '<ul class="msg-list">'; inList = true; }
+        html += `<li>${inlineFmt(t.slice(2))}</li>`;
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        if (t === '') {
+          html += '<div class="msg-spacer"></div>';
+        } else if (/^[A-Z][^:]{2,30}:\s*$/.test(t)) {
+          // Category headers like "Economic & Housing:" or "Lifestyle:"
+          html += `<div class="msg-category">${inlineFmt(t)}</div>`;
+        } else {
+          html += `<p>${inlineFmt(t)}</p>`;
+        }
+      }
+    }
+    if (inList) html += '</ul>';
+    return html;
+  }
+
   // ── Add message to chat ─────────────────────
   function addMessage(role, text) {
     const wrapper = document.createElement('div');
@@ -1003,7 +1062,11 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    bubble.textContent = text.replace(/\*\*(.+?)\*\*/g, '$1');
+    if (role === 'assistant') {
+      bubble.innerHTML = formatMessageHtml(text);
+    } else {
+      bubble.textContent = text;
+    }
 
     wrapper.appendChild(label);
     wrapper.appendChild(bubble);
@@ -1085,7 +1148,8 @@
       </div>`;
 
     messagesEl.appendChild(el);
-    scrollToBottom();
+    // Delay scroll so the card's aspect-ratio placeholder has height
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom()));
   }
 
   async function triggerReportPurchase() {

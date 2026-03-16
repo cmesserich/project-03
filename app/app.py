@@ -33,6 +33,7 @@ from dotenv import load_dotenv
 
 from conversation import ConversationManager, load_from_db, persist_message
 from tools import dispatch
+from score_engine import get_similar_cities
 from logger import log_conversation_close
 from system_prompt import SYSTEM_PROMPT
 from db import (
@@ -356,31 +357,38 @@ async def chat(request: ChatRequest):
     query_ran = False
 
     city_card = None
+
+    def _build_city_card(d: dict) -> dict:
+        """Builds a serializable city_card dict from a get_city_detail result.
+        Scores are stored as 0-1 in the DB; multiply by 100 for display."""
+        def _f(v):
+            return float(v) if v is not None else None
+        def _s(v):
+            # 0-1 → 0-100 for score bars
+            return round(float(v) * 100, 1) if v is not None else None
+        return {
+            "geo_id":                  d.get("geo_id"),
+            "name":                    d.get("name"),
+            "state":                   d.get("state"),
+            "population":              _f(d.get("population")),
+            "median_household_income": _f(d.get("median_household_income")),
+            "median_gross_rent":       _f(d.get("median_gross_rent")),
+            "median_home_value":       _f(d.get("median_home_value")),
+            "avg_aqi":                 _f(d.get("avg_aqi")),
+            "econ_score":              _s(d.get("econ_score")),
+            "lifestyle_score":         _s(d.get("lifestyle_score")),
+            "community_score":         _s(d.get("community_score")),
+            "mobility_score":          _s(d.get("mobility_score")),
+            "health_score":            _s(d.get("health_score")),
+        }
+
     if tool_results:
         query_ran = "query_cities" in tool_results and tool_results["query_cities"]["success"]
         if query_ran:
             cities = tool_results["query_cities"]["cities"]
 
         if "get_city_detail" in tool_results and tool_results["get_city_detail"]["success"]:
-            d = tool_results["get_city_detail"]["detail"]
-            def _f(v):
-                """Cast Decimal/numeric DB values to float for JSON serialization."""
-                return float(v) if v is not None else None
-            city_card = {
-                "geo_id":                  d.get("geo_id"),
-                "name":                    d.get("name"),
-                "state":                   d.get("state"),
-                "population":              _f(d.get("population")),
-                "median_household_income": _f(d.get("median_household_income")),
-                "median_gross_rent":       _f(d.get("median_gross_rent")),
-                "median_home_value":       _f(d.get("median_home_value")),
-                "avg_aqi":                 _f(d.get("avg_aqi")),
-                "econ_score":              _f(d.get("econ_score")),
-                "lifestyle_score":         _f(d.get("lifestyle_score")),
-                "community_score":         _f(d.get("community_score")),
-                "mobility_score":          _f(d.get("mobility_score")),
-                "health_score":            _f(d.get("health_score")),
-            }
+            city_card = _build_city_card(tool_results["get_city_detail"]["detail"])
 
         # 4. Feed tool results back to LLM for a follow-up response
         tool_context = build_tool_context(tool_results)
@@ -409,32 +417,37 @@ async def chat(request: ChatRequest):
         raw_response, turn_number=manager.turn
     )
 
-    # 5b. Fallback: if LLM set target_city_id but skipped the tool call
-    #     (e.g. answered from context on a repeat question), fetch the
-    #     card silently so the UI card still renders.
+    # 5b. Fallback: LLM set target_city_id but skipped the tool call
+    #     (e.g. answered from context on a repeat question).
     if city_card is None:
         fallback_cbsa = manager.get_target_city_id()
         if fallback_cbsa:
             fb = dispatch("get_city_detail", cbsa_code=fallback_cbsa)
             if fb["success"]:
-                d = fb["detail"]
-                def _f(v):
-                    return float(v) if v is not None else None
-                city_card = {
-                    "geo_id":                  d.get("geo_id"),
-                    "name":                    d.get("name"),
-                    "state":                   d.get("state"),
-                    "population":              _f(d.get("population")),
-                    "median_household_income": _f(d.get("median_household_income")),
-                    "median_gross_rent":       _f(d.get("median_gross_rent")),
-                    "median_home_value":       _f(d.get("median_home_value")),
-                    "avg_aqi":                 _f(d.get("avg_aqi")),
-                    "econ_score":              _f(d.get("econ_score")),
-                    "lifestyle_score":         _f(d.get("lifestyle_score")),
-                    "community_score":         _f(d.get("community_score")),
-                    "mobility_score":          _f(d.get("mobility_score")),
-                    "health_score":            _f(d.get("health_score")),
-                }
+                city_card = _build_city_card(fb["detail"])
+
+    # 5c. If a city card exists but no ranked results yet, populate the
+    #     results panel with the queried city + 4 similar metros so the
+    #     report CTA is accessible on direct city inquiries.
+    if city_card and city_card.get("geo_id") and not cities:
+        similar = get_similar_cities(city_card["geo_id"], limit=4)
+        queried = {
+            "rank":               1,
+            "name":               city_card["name"],
+            "state":              city_card["state"],
+            "geo_id":             city_card["geo_id"],
+            "personalized_score": 100.0,
+            "parent_scores": {
+                "econ":      city_card.get("econ_score") or 0,
+                "lifestyle": city_card.get("lifestyle_score") or 0,
+                "community": city_card.get("community_score") or 0,
+                "mobility":  city_card.get("mobility_score") or 0,
+                "health":    city_card.get("health_score") or 0,
+            },
+            "sub_scores": {},
+        }
+        cities = [queried] + similar
+        query_ran = True
 
     # 6. Close conversation if at limit
     at_limit = manager.at_turn_limit() or manager.at_query_limit()

@@ -290,6 +290,52 @@ def score_cities(weights: dict, filters: dict = None, limit: int = 10) -> list:
     return results
 
 
+def get_similar_cities(cbsa_code: str, limit: int = 4) -> list:
+    """
+    Returns the most similar cities to a given city, measured by
+    Euclidean distance across all 16 sub-subindex scores.
+    Used when a user asks about a single city directly (no ranked query yet)
+    so we can populate the results panel with comparable metros.
+
+    Similarity score: 100 = identical profile, 0 = completely opposite.
+    """
+    df = fetch_city_data()
+
+    target_rows = df[df["geo_id"] == cbsa_code]
+    if target_rows.empty:
+        return []
+
+    target_scores = target_rows[SUB_SUBINDICES].iloc[0]
+    other = df[df["geo_id"] != cbsa_code].copy()
+
+    # Euclidean distance in 16-D score space (each dim 0-1, max dist = sqrt(16) = 4)
+    other["_dist"] = other[SUB_SUBINDICES].apply(
+        lambda row: float(((row - target_scores) ** 2).sum() ** 0.5),
+        axis=1,
+    )
+
+    results = []
+    for rank, (_, row) in enumerate(other.sort_values("_dist").head(limit).iterrows(), start=2):
+        parent_scores = {}
+        for parent in ["econ", "lifestyle", "community", "mobility", "health"]:
+            children = [k for k, v in PARENT_MAP.items() if v == parent]
+            parent_scores[parent] = round(
+                sum(float(row[c]) for c in children) / len(children) * 100, 1
+            )
+        similarity = round(max(0.0, 100 - row["_dist"] / 4 * 100), 1)
+        results.append({
+            "rank":               rank,
+            "name":               row["name"],
+            "state":              row["state_abbr"],
+            "geo_id":             row["geo_id"],
+            "personalized_score": similarity,
+            "parent_scores":      parent_scores,
+            "sub_scores":         {col: round(float(row[col]) * 100, 1) for col in SUB_SUBINDICES},
+        })
+
+    return results
+
+
 def get_city_detail(cbsa_code: str) -> dict:
     """
     Returns full available stats for a single city by joining
