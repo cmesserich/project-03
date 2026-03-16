@@ -5,9 +5,8 @@ WORKDIR /app
 # Install system deps for psycopg2 and WeasyPrint (PDF generation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev gcc \
-    libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
-    libgdk-pixbuf2.0-0 libffi-dev libxml2 libxslt1.1 \
-    libopenjp2-7 libjpeg-dev fonts-liberation \
+    libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 libcairo2 \
+    libffi-dev libxml2 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps
