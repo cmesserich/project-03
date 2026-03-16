@@ -612,6 +612,150 @@
       padding: 12px 0;
     }
 
+    /* ── Inline city card (in chat thread) ──── */
+
+    .chat-city-card {
+      align-self: flex-start;
+      width: min(100%, 360px);
+      background: white;
+      border: 1px solid var(--sand);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: fadeUp 0.25s ease both;
+      margin-top: 2px;
+    }
+
+    .ccc-header {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid var(--sand-light);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .ccc-city-name {
+      font-family: 'Fraunces', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .ccc-city-state {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ccc-map {
+      width: 100%;
+      background: #f9f7f4;
+      line-height: 0;
+    }
+
+    .ccc-map img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .ccc-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--sand-light);
+    }
+
+    .ccc-stat {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--sand-light);
+      border-right: 1px solid var(--sand-light);
+    }
+
+    .ccc-stat:nth-child(even) { border-right: none; }
+    .ccc-stat:nth-last-child(-n+2) { border-bottom: none; }
+
+    .ccc-stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 2px;
+    }
+
+    .ccc-stat-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .ccc-scores {
+      padding: 11px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      border-bottom: 1px solid var(--sand-light);
+    }
+
+    .ccc-score-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ccc-score-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      width: 66px;
+      flex-shrink: 0;
+    }
+
+    .ccc-score-track {
+      flex: 1;
+      height: 3px;
+      background: var(--sand-light);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ccc-score-fill {
+      height: 100%;
+      background: var(--terracotta);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .ccc-score-val {
+      font-size: 10px;
+      color: var(--ink);
+      font-family: 'Space Mono', monospace;
+      width: 20px;
+      text-align: right;
+    }
+
+    .ccc-footer {
+      padding: 9px 14px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    .ccc-footer-link {
+      color: var(--terracotta);
+      cursor: pointer;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+      font-family: inherit;
+    }
+
+    .ccc-footer-link:hover { text-decoration: underline; }
+
     /* ── Empty state ─────────────────────────── */
 
     .empty-state {
@@ -868,6 +1012,99 @@
     return wrapper;
   }
 
+  // ── Inline city card ─────────────────────────
+  function renderCityCard(card) {
+    if (!card || !card.geo_id) return;
+
+    function fmtPop(v) {
+      if (!v) return 'N/A';
+      if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+      if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+      return String(v);
+    }
+    function fmtMoney(v) {
+      if (!v) return 'N/A';
+      return '$' + Math.round(v).toLocaleString();
+    }
+    function fmtRent(v) {
+      if (!v) return 'N/A';
+      return '$' + Math.round(v).toLocaleString() + '/mo';
+    }
+    function fmtScore(v) {
+      return v != null ? Math.round(v) : 0;
+    }
+
+    const scores = [
+      { label: 'Economic',  val: fmtScore(card.econ_score) },
+      { label: 'Lifestyle', val: fmtScore(card.lifestyle_score) },
+      { label: 'Community', val: fmtScore(card.community_score) },
+      { label: 'Mobility',  val: fmtScore(card.mobility_score) },
+      { label: 'Health',    val: fmtScore(card.health_score) },
+    ];
+
+    const scoreBarsHtml = scores.map(s => `
+      <div class="ccc-score-row">
+        <span class="ccc-score-label">${s.label}</span>
+        <div class="ccc-score-track">
+          <div class="ccc-score-fill" style="width:${s.val}%"></div>
+        </div>
+        <span class="ccc-score-val">${s.val}</span>
+      </div>`).join('');
+
+    const el = document.createElement('div');
+    el.className = 'chat-city-card';
+    el.innerHTML = `
+      <div class="ccc-header">
+        <span class="ccc-city-name">${card.name}</span>
+        <span class="ccc-city-state">${card.state}</span>
+      </div>
+      <div class="ccc-map">
+        <img src="/api/city/${card.geo_id}/map" alt="${card.name} metro map" loading="lazy" />
+      </div>
+      <div class="ccc-stats-grid">
+        <div class="ccc-stat">
+          <div class="ccc-stat-label">Population</div>
+          <div class="ccc-stat-value">${fmtPop(card.population)}</div>
+        </div>
+        <div class="ccc-stat">
+          <div class="ccc-stat-label">Median Income</div>
+          <div class="ccc-stat-value">${fmtMoney(card.median_household_income)}</div>
+        </div>
+        <div class="ccc-stat">
+          <div class="ccc-stat-label">Median Rent</div>
+          <div class="ccc-stat-value">${fmtRent(card.median_gross_rent)}</div>
+        </div>
+        <div class="ccc-stat">
+          <div class="ccc-stat-label">Home Value</div>
+          <div class="ccc-stat-value">${fmtMoney(card.median_home_value)}</div>
+        </div>
+      </div>
+      <div class="ccc-scores">${scoreBarsHtml}</div>
+      <div class="ccc-footer">
+        Preview &mdash; <button class="ccc-footer-link" onclick="triggerReportPurchase()">get the full report &rarr;</button>
+      </div>`;
+
+    messagesEl.appendChild(el);
+    scrollToBottom();
+  }
+
+  async function triggerReportPurchase() {
+    if (!conversationId) return;
+    try {
+      const res = await fetch(`/api/report/checkout/${conversationId}`, { method: 'POST' });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      if (data.already_paid) {
+        showReportCta(data.status, data.report_id);
+        if (data.status === 'generating') startReportPolling(conversationId);
+        return;
+      }
+      if (data.checkout_url) window.location.href = data.checkout_url;
+    } catch (e) {
+      showToast('Something went wrong — please try again.');
+    }
+  }
+
   // ── Typing indicator ────────────────────────
   function showTyping() {
     const wrapper = document.createElement('div');
@@ -1116,6 +1353,8 @@
 
       hideTyping();
       addMessage('assistant', data.message);
+
+      if (data.city_card) renderCityCard(data.city_card);
 
       if (data.cities) {
         renderCities(data.cities);

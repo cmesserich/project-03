@@ -25,7 +25,7 @@ from typing import Optional
 
 import anthropic
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -355,10 +355,29 @@ async def chat(request: ChatRequest):
     cities = None
     query_ran = False
 
+    city_card = None
     if tool_results:
         query_ran = "query_cities" in tool_results and tool_results["query_cities"]["success"]
         if query_ran:
             cities = tool_results["query_cities"]["cities"]
+
+        if "get_city_detail" in tool_results and tool_results["get_city_detail"]["success"]:
+            d = tool_results["get_city_detail"]["detail"]
+            city_card = {
+                "geo_id":                  d.get("geo_id"),
+                "name":                    d.get("name"),
+                "state":                   d.get("state"),
+                "population":              d.get("population"),
+                "median_household_income": d.get("median_household_income"),
+                "median_gross_rent":       d.get("median_gross_rent"),
+                "median_home_value":       d.get("median_home_value"),
+                "avg_aqi":                 d.get("avg_aqi"),
+                "econ_score":              d.get("econ_score"),
+                "lifestyle_score":         d.get("lifestyle_score"),
+                "community_score":         d.get("community_score"),
+                "mobility_score":          d.get("mobility_score"),
+                "health_score":            d.get("health_score"),
+            }
 
         # 4. Feed tool results back to LLM for a follow-up response
         tool_context = build_tool_context(tool_results)
@@ -395,6 +414,7 @@ async def chat(request: ChatRequest):
     return JSONResponse({
         "message":         manager.get_latest_clean_response(),
         "cities":          cities,
+        "city_card":       city_card,
         "query_ran":       query_ran,
         "turn":            manager.turn,
         "at_limit":        at_limit,
@@ -629,6 +649,20 @@ async def get_city(cbsa_code: str):
         "state": detail.get("state"),
         "stats": stats,
     })
+
+
+@app.get("/api/city/{cbsa_code}/map")
+async def get_city_map_image(cbsa_code: str):
+    """
+    Returns the metro boundary as a PNG image.
+    Used by the in-chat city card to render the map inline.
+    """
+    import base64
+    from report import _generate_city_map
+    png_b64 = _generate_city_map(cbsa_code)
+    if not png_b64:
+        raise HTTPException(status_code=404, detail="Map not available for this city")
+    return Response(content=base64.b64decode(png_b64), media_type="image/png")
 
 
 # ─────────────────────────────────────────────
