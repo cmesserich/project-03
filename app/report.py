@@ -32,7 +32,7 @@ from sqlalchemy import text  # noqa: E402
 
 from db import get_engine  # noqa: E402
 from score_engine import (  # noqa: E402
-    get_city_detail, DISPLAY_LABELS, PARENT_LABELS, PARENT_MAP,
+    get_city_detail, DISPLAY_LABELS, PARENT_LABELS, PARENT_MAP, DEFAULT_WEIGHTS,
 )
 
 REPORTS_DIR  = Path("/app/reports")
@@ -142,11 +142,15 @@ def _get_report_data(conversation_id: str) -> Optional[dict]:
             LIMIT 1
         """), {"id": conversation_id}).fetchone()
 
-    weights        = result_row.derived_weights or {}
+    raw_weights    = result_row.derived_weights or {}
     top_cities_raw = result_row.top_cities or []
 
     if not top_cities_raw:
         return None
+
+    # Use personalized weights if present, otherwise fall back to equal weights
+    weights_personalized = bool(raw_weights)
+    weights = raw_weights if weights_personalized else DEFAULT_WEIGHTS
 
     # Enrich top 5 cities with detail stats and map images
     cities = []
@@ -190,15 +194,16 @@ def _get_report_data(conversation_id: str) -> Optional[dict]:
         }
 
     return {
-        "conversation_id":   conversation_id,
-        "username":          meta.username or "Anonymous",
-        "generated_at":      datetime.now().strftime("%B %d, %Y"),
-        "cities":            cities,
-        "weights":           weights,
-        "weight_groups":     weight_groups,
-        "parent_labels":     PARENT_LABELS,
-        "display_labels":    DISPLAY_LABELS,
-        "signals":           signals,
+        "conversation_id":    conversation_id,
+        "username":           meta.username or "Anonymous",
+        "generated_at":       datetime.now().strftime("%B %d, %Y"),
+        "cities":             cities,
+        "weights":            weights,
+        "weight_groups":      weight_groups,
+        "weights_personalized": weights_personalized,
+        "parent_labels":      PARENT_LABELS,
+        "display_labels":     DISPLAY_LABELS,
+        "signals":            signals,
         "top_cities_summary": top_cities_raw[:10],
     }
 

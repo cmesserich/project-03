@@ -761,9 +761,15 @@ body {
   </div>
 
   <p class="section-intro">
+    {% if weights_personalized %}
     These weights were inferred from what you emphasized during your conversation.
     Factors you mentioned more — or mentioned with stronger feeling — received higher weight
     in the scoring model.
+    {% else %}
+    No strong preference signals were detected in this conversation, so all 16 scoring
+    factors were weighted equally. Start a new conversation and tell us what matters most
+    to you — jobs, affordability, outdoors, culture — to get a personalized weight profile.
+    {% endif %}
   </p>
 
   {% for parent_key, items in weight_groups.items() %}
