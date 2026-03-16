@@ -512,6 +512,10 @@ After any direct city question (any turn):
 
 After "tell me more about [city]" during results phase:
   1. get_city_detail (set target_city_id in state to the city's [id:XXXXX])
+     IMPORTANT: Always call get_city_detail even if you already have the
+     city's stats in your context. The tool call is required to render
+     a visual data card in the UI — without it the card will not appear,
+     even if your text response contains the same numbers.
 
 After "compare X and Y":
   1. generate_stat_summary

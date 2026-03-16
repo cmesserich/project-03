@@ -409,6 +409,33 @@ async def chat(request: ChatRequest):
         raw_response, turn_number=manager.turn
     )
 
+    # 5b. Fallback: if LLM set target_city_id but skipped the tool call
+    #     (e.g. answered from context on a repeat question), fetch the
+    #     card silently so the UI card still renders.
+    if city_card is None:
+        fallback_cbsa = manager.get_target_city_id()
+        if fallback_cbsa:
+            fb = dispatch("get_city_detail", cbsa_code=fallback_cbsa)
+            if fb["success"]:
+                d = fb["detail"]
+                def _f(v):
+                    return float(v) if v is not None else None
+                city_card = {
+                    "geo_id":                  d.get("geo_id"),
+                    "name":                    d.get("name"),
+                    "state":                   d.get("state"),
+                    "population":              _f(d.get("population")),
+                    "median_household_income": _f(d.get("median_household_income")),
+                    "median_gross_rent":       _f(d.get("median_gross_rent")),
+                    "median_home_value":       _f(d.get("median_home_value")),
+                    "avg_aqi":                 _f(d.get("avg_aqi")),
+                    "econ_score":              _f(d.get("econ_score")),
+                    "lifestyle_score":         _f(d.get("lifestyle_score")),
+                    "community_score":         _f(d.get("community_score")),
+                    "mobility_score":          _f(d.get("mobility_score")),
+                    "health_score":            _f(d.get("health_score")),
+                }
+
     # 6. Close conversation if at limit
     at_limit = manager.at_turn_limit() or manager.at_query_limit()
     if at_limit:
