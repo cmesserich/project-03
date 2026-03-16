@@ -1275,11 +1275,6 @@
         <p>Answer a few questions and we'll find your best matches</p>
       </div>`;
 
-    // Close history panel
-    historyOpen = false;
-    document.getElementById('history-panel').classList.remove('open');
-    document.getElementById('history-btn').classList.remove('active');
-
     try {
       const res = await fetch(`/api/conversation/${id}`);
       if (!res.ok) throw new Error();
