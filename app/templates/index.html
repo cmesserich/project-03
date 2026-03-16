@@ -702,6 +702,83 @@
     @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: translateY(0) } }
 
+    /* ── Mobile tab bar ──────────────────────── */
+    .mobile-tabs { display: none; }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 56px 44px 1fr;
+      }
+      header { grid-column: 1; }
+      .header-tag { display: none; }
+
+      .mobile-tabs {
+        display: flex;
+        grid-column: 1;
+        grid-row: 2;
+        background: var(--cream);
+        border-bottom: 1px solid var(--sand);
+      }
+      .mobile-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: none;
+        border-bottom: 2px solid transparent;
+        background: none;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s;
+        padding-bottom: 2px;
+      }
+      .mobile-tab.active {
+        color: var(--terracotta);
+        border-bottom-color: var(--terracotta);
+      }
+      .tab-badge {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--terracotta);
+        flex-shrink: 0;
+        display: none;
+      }
+      .tab-badge.show { display: block; }
+
+      .chat-panel {
+        grid-column: 1;
+        grid-row: 3;
+        border-right: none;
+      }
+      .results-panel {
+        grid-column: 1;
+        grid-row: 3;
+      }
+      .layout.tab-cities .chat-panel  { display: none; }
+      .layout.tab-chat   .results-panel { display: none; }
+
+      .history-panel {
+        width: 85vw;
+        left: -85vw;
+      }
+      .history-panel.open { left: 0; }
+
+      .messages { padding: 20px 16px; }
+      .input-area { padding: 10px 12px; }
+      .results-panel { padding: 0; }
+      .results-header { padding: 16px 16px 8px; }
+      .results-list { padding: 0 12px 12px; }
+
+      .city-modal { width: calc(100vw - 24px); max-height: calc(100vh - 48px); }
+    }
+
     .ccc-header {
       padding: 12px 16px 10px;
       border-bottom: 1px solid var(--sand-light);
@@ -1015,6 +1092,14 @@
       </form>
     </div>
   </header>
+
+  <!-- Mobile tab bar -->
+  <div class="mobile-tabs" id="mobile-tabs">
+    <button class="mobile-tab active" id="tab-btn-chat" onclick="switchTab('chat')">Chat</button>
+    <button class="mobile-tab" id="tab-btn-cities" onclick="switchTab('cities')">
+      Your Cities <span class="tab-badge" id="cities-tab-badge"></span>
+    </button>
+  </div>
 
   <!-- History panel -->
   <div class="history-panel" id="history-panel">
@@ -1410,6 +1495,15 @@
   function renderCities(cities) {
     if (!cities || cities.length === 0) return;
 
+    // On mobile: auto-switch to Cities tab and show badge if already there
+    if (window.innerWidth <= 768) {
+      if (activeTab === 'chat') {
+        switchTab('cities');
+      } else {
+        document.getElementById('cities-tab-badge').classList.add('show');
+      }
+    }
+
     resultsEl.innerHTML = '';
 
     cities.forEach(city => {
@@ -1566,6 +1660,20 @@
   });
 
   sendBtn.addEventListener('click', sendMessage);
+
+  // ── Mobile tab switching ─────────────────────
+  const layoutEl = document.querySelector('.layout');
+  let activeTab = 'chat';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    layoutEl.classList.toggle('tab-chat',   tab === 'chat');
+    layoutEl.classList.toggle('tab-cities', tab === 'cities');
+    document.getElementById('tab-btn-chat').classList.toggle('active',   tab === 'chat');
+    document.getElementById('tab-btn-cities').classList.toggle('active', tab === 'cities');
+    if (tab === 'cities') document.getElementById('cities-tab-badge').classList.remove('show');
+  }
+  switchTab('chat'); // init
 
   // ── ESC closes city modal / history panel ────
   document.addEventListener('keydown', e => {
