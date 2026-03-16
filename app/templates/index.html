@@ -633,19 +633,73 @@
       padding: 12px 0;
     }
 
-    /* ── Inline city card (in chat thread) ──── */
+    /* ── City preview button (in chat thread) ─── */
 
-    .chat-city-card {
+    .city-preview-btn {
       align-self: flex-start;
-      width: 360px;
-      max-width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: white;
       border: 1px solid var(--sand);
       border-radius: var(--radius);
-      overflow: hidden;
-      animation: fadeUp 0.25s ease both;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--ink);
+      transition: border-color 0.15s, background 0.15s;
+      animation: fadeUp 0.2s ease both;
       margin-top: 2px;
     }
+    .city-preview-btn:hover {
+      border-color: var(--terracotta);
+      background: #fdf8f5;
+    }
+    .city-preview-btn svg { color: var(--terracotta); flex-shrink: 0; }
+    .city-preview-btn-name { font-weight: 500; }
+    .city-preview-btn-hint { color: var(--muted); }
+
+    /* ── City modal ──────────────────────────── */
+
+    .city-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 26, 22, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      animation: fadeIn 0.15s ease;
+    }
+    .city-modal {
+      position: relative;
+      width: 400px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+      animation: slideUp 0.2s ease;
+    }
+    .city-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px 6px;
+      border-radius: 3px;
+    }
+    .city-modal-close:hover { color: var(--ink); background: var(--sand-light); }
+
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: translateY(0) } }
 
     .ccc-header {
       padding: 12px 16px 10px;
@@ -1076,85 +1130,89 @@
     return wrapper;
   }
 
-  // ── Inline city card ─────────────────────────
+  // ── City card helpers ────────────────────────
+  function _fmtPop(v) {
+    if (!v) return 'N/A';
+    if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+    return String(v);
+  }
+  function _fmtMoney(v) { return v ? '$' + Math.round(v).toLocaleString() : 'N/A'; }
+  function _fmtRent(v)  { return v ? '$' + Math.round(v).toLocaleString() + '/mo' : 'N/A'; }
+  function _fmtScore(v) { return v != null ? Math.round(v) : 0; }
+  function _scoreBars(card) {
+    return [
+      { label: 'Economic',  val: _fmtScore(card.econ_score) },
+      { label: 'Lifestyle', val: _fmtScore(card.lifestyle_score) },
+      { label: 'Community', val: _fmtScore(card.community_score) },
+      { label: 'Mobility',  val: _fmtScore(card.mobility_score) },
+      { label: 'Health',    val: _fmtScore(card.health_score) },
+    ].map(s => `
+      <div class="ccc-score-row">
+        <span class="ccc-score-label">${s.label}</span>
+        <div class="ccc-score-track"><div class="ccc-score-fill" style="width:${s.val}%"></div></div>
+        <span class="ccc-score-val">${s.val}</span>
+      </div>`).join('');
+  }
+  function _stateLabel(card) {
+    return (card.state && card.name && card.name.includes(card.state)) ? '' : (card.state || '');
+  }
+
+  // ── City preview button (in chat) ────────────
   function renderCityCard(card) {
     if (!card || !card.geo_id) return;
 
-    function fmtPop(v) {
-      if (!v) return 'N/A';
-      if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-      if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
-      return String(v);
-    }
-    function fmtMoney(v) {
-      if (!v) return 'N/A';
-      return '$' + Math.round(v).toLocaleString();
-    }
-    function fmtRent(v) {
-      if (!v) return 'N/A';
-      return '$' + Math.round(v).toLocaleString() + '/mo';
-    }
-    function fmtScore(v) {
-      return v != null ? Math.round(v) : 0;
-    }
+    const btn = document.createElement('button');
+    btn.className = 'city-preview-btn';
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="10" r="3"/>
+        <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.65 12a.5.5 0 0 0 .7 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+      </svg>
+      <span class="city-preview-btn-name">${card.name}</span>
+      <span class="city-preview-btn-hint">— view city snapshot</span>`;
+    btn.onclick = () => openCityModal(card);
 
-    const scores = [
-      { label: 'Economic',  val: fmtScore(card.econ_score) },
-      { label: 'Lifestyle', val: fmtScore(card.lifestyle_score) },
-      { label: 'Community', val: fmtScore(card.community_score) },
-      { label: 'Mobility',  val: fmtScore(card.mobility_score) },
-      { label: 'Health',    val: fmtScore(card.health_score) },
-    ];
+    messagesEl.appendChild(btn);
+    requestAnimationFrame(() => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  }
 
-    const scoreBarsHtml = scores.map(s => `
-      <div class="ccc-score-row">
-        <span class="ccc-score-label">${s.label}</span>
-        <div class="ccc-score-track">
-          <div class="ccc-score-fill" style="width:${s.val}%"></div>
+  // ── City modal ───────────────────────────────
+  function openCityModal(card) {
+    closeCityModal(); // remove any existing
+    const sl = _stateLabel(card);
+    const overlay = document.createElement('div');
+    overlay.id = 'city-modal-overlay';
+    overlay.className = 'city-modal-overlay';
+    overlay.innerHTML = `
+      <div class="city-modal">
+        <button class="city-modal-close" onclick="closeCityModal()">&#10005;</button>
+        <div class="ccc-header">
+          <span class="ccc-city-name">${card.name}</span>
+          ${sl ? `<span class="ccc-city-state">${sl}</span>` : ''}
         </div>
-        <span class="ccc-score-val">${s.val}</span>
-      </div>`).join('');
-
-    // Avoid "Denver, CO CO" — only show state tag if not already in name
-    const stateLabel = (card.state && card.name && card.name.includes(card.state)) ? '' : (card.state || '');
-
-    const el = document.createElement('div');
-    el.className = 'chat-city-card';
-    el.innerHTML = `
-      <div class="ccc-header">
-        <span class="ccc-city-name">${card.name}</span>
-        ${stateLabel ? `<span class="ccc-city-state">${stateLabel}</span>` : ''}
-      </div>
-      <div class="ccc-map">
-        <img src="/api/city/${card.geo_id}/map" alt="Metro map"
-             onerror="this.style.display='none';this.parentElement.style.background='var(--sand-light)'" />
-      </div>
-      <div class="ccc-stats-grid">
-        <div class="ccc-stat">
-          <div class="ccc-stat-label">Population</div>
-          <div class="ccc-stat-value">${fmtPop(card.population)}</div>
+        <div class="ccc-map">
+          <img src="/api/city/${card.geo_id}/map" alt="Metro map"
+               onerror="this.style.display='none';this.parentElement.style.background='var(--sand-light)'" />
         </div>
-        <div class="ccc-stat">
-          <div class="ccc-stat-label">Median Income</div>
-          <div class="ccc-stat-value">${fmtMoney(card.median_household_income)}</div>
+        <div class="ccc-stats-grid">
+          <div class="ccc-stat"><div class="ccc-stat-label">Population</div><div class="ccc-stat-value">${_fmtPop(card.population)}</div></div>
+          <div class="ccc-stat"><div class="ccc-stat-label">Median Income</div><div class="ccc-stat-value">${_fmtMoney(card.median_household_income)}</div></div>
+          <div class="ccc-stat"><div class="ccc-stat-label">Median Rent</div><div class="ccc-stat-value">${_fmtRent(card.median_gross_rent)}</div></div>
+          <div class="ccc-stat"><div class="ccc-stat-label">Home Value</div><div class="ccc-stat-value">${_fmtMoney(card.median_home_value)}</div></div>
         </div>
-        <div class="ccc-stat">
-          <div class="ccc-stat-label">Median Rent</div>
-          <div class="ccc-stat-value">${fmtRent(card.median_gross_rent)}</div>
+        <div class="ccc-scores">${_scoreBars(card)}</div>
+        <div class="ccc-footer">
+          Preview &mdash; <button class="ccc-footer-link" onclick="closeCityModal();triggerReportPurchase()">get the full report &rarr;</button>
         </div>
-        <div class="ccc-stat">
-          <div class="ccc-stat-label">Home Value</div>
-          <div class="ccc-stat-value">${fmtMoney(card.median_home_value)}</div>
-        </div>
-      </div>
-      <div class="ccc-scores">${scoreBarsHtml}</div>
-      <div class="ccc-footer">
-        Preview &mdash; <button class="ccc-footer-link" onclick="triggerReportPurchase()">get the full report &rarr;</button>
       </div>`;
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeCityModal(); });
+    document.body.appendChild(overlay);
+  }
 
-    messagesEl.appendChild(el);
-    // scrollIntoView is more reliable than scrollTop when smooth-scroll is active
-    requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  function closeCityModal() {
+    const el = document.getElementById('city-modal-overlay');
+    if (el) el.remove();
   }
 
   async function triggerReportPurchase() {
@@ -1464,6 +1522,10 @@
   });
 
   sendBtn.addEventListener('click', sendMessage);
+
+  // ── ESC closes city modal ────────────────────
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCityModal(); });
+
 
   // ── Start conversation on load ──────────────
   async function init() {
