@@ -1572,7 +1572,7 @@
 
   // ── Start conversation on load ──────────────
   async function init() {
-    // Handle return from Stripe checkout
+    // Handle return from Stripe checkout (success)
     if (_reportSuccess && _urlConvId) {
       conversationId = _urlConvId;
       showTyping();
@@ -1588,6 +1588,12 @@
       setWaiting(false);
       showReportCta('generating', null);
       startReportPolling(_urlConvId);
+      return;
+    }
+
+    // Handle return from Stripe checkout (cancel) or any direct conversation link
+    if (_urlConvId) {
+      await loadPastConversation(_urlConvId);
       return;
     }
 
